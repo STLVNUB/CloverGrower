@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 myV="4.9a"
 gccVersToUse="4.7.2" # failsafe check
 function echob() {
