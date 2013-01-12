@@ -1,0 +1,12 @@
+# Files to always ignore
+.DS_Store
+*.[oa]
+*~
+
+# Files generated automatically
+Files/.CloverTools
+Files/.gccVersion
+
+# Directories that we doesn't need to track
+builtPKG/
+src/
