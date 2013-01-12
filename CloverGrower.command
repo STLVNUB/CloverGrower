@@ -125,36 +125,29 @@ esac
 
 # set up Revisions
 function getREVISIONSClover(){
-#Clover
-cloverstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
-export CloverREV="${cloverstats:10}"
-if [ "$1" == "Initial" ]; then
-	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
-fi			
-#rEFIt
-refitstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
-export rEFItREV="${refitstats:18}"
-export cloverVers="${CloverREV}:${rEFItREV}"
-wait
+    # Clover
+    export CloverREV=$(svn info svn://svn.code.sf.net/p/cloverefiboot/code | sed -n 's/^Revision: *//p')
+    if [ "$1" == "Initial" ]; then
+        echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
+    fi
+    # rEFIt
+    export rEFItREV=$(svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | sed -n 's/^Last Changed Rev: *//p')
+    export cloverVers="${CloverREV}:${rEFItREV}"
 }
 
 # set up Revisions
 function getREVISIONSedk2(){
-#EDK2
-checksvn=`curl -s http://edk2.svn.sourceforge.net/viewvc/edk2/ | grep "Revision"`
-wait
-export edk2REV="${checksvn:53:5}"
-wait
-if [ "$1" == "Initial" ]; then
-	basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
-	basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
-	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
-	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
-	wait
-fi
+	# EDK2
+	export edk2REV=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/ | sed -n 's/^Revision: *//p')
+	if [ "$1" == "Initial" ]; then
+		# grab basetools revision, rebuild tools IF revision has changed
+		basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
+		echo "${edk2REV}"   > "${edk2DIR}"/Lvers.txt      # update edk2 revision
+		echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt # update basetools revision
+	fi
 }
 
-# simple check return value function , does it actually work!!
+# simple check return value function, does it actually work!!
 function checkit(){
 	return_val=$?
 	if [ ${return_val} == "0" ]; then
@@ -234,8 +227,8 @@ cd "${srcDIR}"
 echob "  Entering function getSOURCEFILE:"
 getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 if [ -d "${edk2DIR}"/BaseTools ] || [ "${cloverUpdate}" == "Yes" ]; then
-	basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
-	basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+    # grab basetools revision, rebuild tools IF revision has changed
+    basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
 	Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
 	if [ "$basetools" -gt "$Lbasetools" ]; then # rebuild tools IF revision has changed
 		echob "    BaseTools @ Revision $basetools"
@@ -528,8 +521,7 @@ function makePKG(){
 	if [ -f "${CloverDIR}"/Lvers.txt ]; then # if NOT there, must be New, so check out needed
 		cloverLVers=`cat "${CloverDIR}"/Lvers.txt`
 		edk2Local=`cat "${edk2DIR}"/Lvers.txt`
-		cloverLocal=`svn info "${edk2DIR}"/Clover | grep 'Last Changed Rev:'`
-		cloverLocal="${cloverLocal:18:3}"
+		cloverLocal=$(svn info "${edk2DIR}"/Clover | sed -n 's/^Last Changed Rev: *//p')
 		if [ "${cloverLVers}" != "${CloverREV}" ]; then
 			echob "Update Detected:"
 			cloverUpdate="Yes"
