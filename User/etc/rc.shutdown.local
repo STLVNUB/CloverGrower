@@ -1,0 +1,8 @@
+#!/bin/sh
+# (c) Slice 2010
+gTheLoader=$(ioreg -l -pIODeviceTree | grep firmware-vendor | awk '{print $5}' | sed 's/_/ /g' | tr -d "<\">" | xxd -r -p)
+if [ "$gTheLoader" == "CLOVER" ]; then # If loader is CLOVER(boot) use it, otherwise is it NOT needed for UEFI??
+	nvram -x -p >nvram.plist
+	echo Hello! NVRAM is saved!
+fi	
+
