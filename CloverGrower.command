@@ -6,26 +6,25 @@ gccVersToUse="4.7.2" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
-function echob() {
-  echo "`tput bold`$1`tput sgr0`"
-}
+# Retrieve full path of the command
+declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
+
+# Retrieve full path of CloverGrower
+declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
+declare -r CLOVER_GROWER_DIR=${CLOVER_GROWER_SCRIPT%/*}
+
+# Source librarie
+source "$CLOVER_GROWER_DIR/CloverGrower.lib"
+
 target="64"
 if [ "$1" == "" ]; then
 	target="X64/IA32"
-fi		
-#set -x
-set -ue
-theBoss=`id -unr`
-STARTH=`date "+%H"`
-if [ $STARTH -ge 04 -a $STARTH -le 12 ]; then
-    hours="Morning  "
-elif [ $STARTH -ge 12 -a $STARTH -le 17 ]; then
-     hours="Afternoon"
-elif [ $STARTH -ge 18 -a $STARTH -le 21 ]; then
-	hours="Evening  "
-else
-	hours="Night    "	
 fi
+
+set -ue
+
+theBoss=$(id -ur)
+hours=$(get_hours)
 
 if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
@@ -39,44 +38,24 @@ if [ ! -f /usr/bin/gcc ]; then
 	echob "Good $hours"
 	tput bel
 	exit 1
-fi	
-theBoss=`id -unr`
-theDIR=`dirname $0`
-if [ "${theDIR}" == "/usr/local/bin" ]; then
-	theProg=`readlink $0`
-	#echo "Link0 is: $theProg"
-else
-	theProg="${0}"
-	#echo "Link1 is: $theProg"
-fi	
-
-if [ "${theDIR}" != "/usr/local/bin" ]; then
-	echob "Running CloverGrower.command"
-	echob "Will Create link:"
-	echo " to"
-	echob "$0"
-	echo " in"
-	echob "/usr/local/bin/clover ??"
-	echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
-	echob "Highly recommended"
-	echob "/usr/local/bin will be created if NOT there"
-	echo " Press 'c' to 'CREATE' link"
-	echo " Or Press >RETURN/ENTER< to 'quit'"
-	read theKey
-	[ "$theKey" == "" ] && echob "Ok, Bye" && exit
-	if [ ! -d /usr/local/bin ]; then
-		echob "sudo mkdir -p /usr/local/bin && sudo chown -R $theBoss:80 /usr/local/bin"
-		sudo mkdir -p /usr/local/bin && sudo chown -R $theBoss:80 /usr/local/bin
-	fi	
-	sudo rm -rf /usr/local/bin/clover
-	echob "sudo ln -s $0 /usr/local/bin/clover && sudo chown -R $theBoss:80 /usr/local/bin/clover"
-	sudo ln -s "$0" /usr/local/bin/clover && sudo chown -R $theBoss:80 /usr/local/bin/clover
 fi
-#exit
+
+if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_SCRIPT" ]]; then
+	echob "Running CloverGrower.command"
+	printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrower.command")
+	echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
+	read -p "Press 'c' to 'CREATE' the link or else to 'quit': " theKey
+	[[ $(lc "$theKey") != "c" ]] && echob "Ok, Bye" && exit
+	if [ ! -d /usr/local/bin ]; then
+		command="sudo mkdir -p /usr/local/bin"; echob "$command" ; eval $command
+	fi	
+	command="sudo ln -sf $CLOVER_GROWER_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
+	echob "$command" ; eval $command
+fi
+
 #vars
-export WORKDIR=$(cd -P -- $(dirname -- "${theProg}") && pwd -P)
-workSpaceFree=`df -m "${WORKDIR}" | awk '{print $4}'`
-workSpace="${workSpaceFree:10:20}"
+export WORKDIR="$CLOVER_GROWER_DIR"
+workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
 HFSPlus="${WORKDIR}"/Files/HFSPlus
@@ -92,24 +71,26 @@ buildAPPS="${WORKDIR}"/src/edk2/BaseTools/Source/C/bin
 cloverPKGDIR="${WORKDIR}"/src/edk2/Clover/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
+
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
-[ ! -d "${builtPKGDIR}" ] && mkdir "${builtPKGDIR}" 
-essentialSVN=`which svn` # check for svn
+[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
+
+# Check for svn
+[[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
+
 style=release
 
-if [ ! -d "$edk2DIR" ] && [ "$workSpace" -lt "$workSpaceNeeded" ]; then
+if [[ ! -d "$edk2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
 	echob "error!!! Not enough free space"
 	echob "Need at least $workSpaceNeeded bytes free"
 	echob "Only have $workSpace bytes"
-	echob "move $theProg"
-	echob "to different Folder"
+	echob "move CloverGrower to different Folder"
 	echob "OR free some space"
 	exit 1
-elif [ "$workSpace" -lt "$workSpaceMin" ]; then
+elif [[ "$workSpace" -lt "$workSpaceMin" ]]; then
 	echob "Getting low on free space"
 fi
 workSpaceAvail="$workSpace"
-
 
 #what system
 theSystem=`uname -r`
@@ -170,14 +151,12 @@ if [ ! -d "$1" ]; then
 	echo "          Local $1 Folder Not Found.."
 	echob "          Making Local ${1} Folder..."
 	mkdir "$1"
-	wait
 	access="co"
 	getREVISIONS${1} Initial # flag to write initial revision
 	echob "    Checking out Remote $1:"
 	echob "    revision: "`cat $1/Lvers.txt`
 	echo "    svn co $2"
 	svn co "$2" "$1"
-	wait 
 	return 
 fi
 
@@ -212,7 +191,7 @@ echo
 
 # sets up svn sources
 function getSOURCE(){
-echob "Entering function getSOURCE:"
+#echob "Entering function getSOURCE:"
 if [ ! -d "${srcDIR}" ]; then
 	echob "  Make src Folder.."
 	mkdir "${srcDIR}"
@@ -223,10 +202,12 @@ fi
 if [ -d "${edk2DIR}"/Build/CloverX64 ] || [  -d "${edk2DIR}"/Build/CloverIA32 ]; then
 	buildMode=">>>Clean<<< Build "
 fi	
+
 cd "${srcDIR}"
-echob "  Entering function getSOURCEFILE:"
+#echob "  Entering function getSOURCEFILE:"
 getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-if [ -d "${edk2DIR}"/BaseTools ] || [ "${cloverUpdate}" == "Yes" ]; then
+
+if [[ -d "${edk2DIR}"/BaseTools || "${cloverUpdate}" == "Yes" ]]; then
     # grab basetools revision, rebuild tools IF revision has changed
     basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
 	Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
@@ -235,43 +216,46 @@ if [ -d "${edk2DIR}"/BaseTools ] || [ "${cloverUpdate}" == "Yes" ]; then
 		echob "    Updated BaseTools Detected"
 		echob "    Clean EDK II BaseTools";echo
 		make -C "${edk2DIR}"/BaseTools clean
-		wait
 	else
-		echo 
+		echo
 	fi
 elif [ ! -d "${edk2DIR}"/BaseTools ]; then
 	echob "    Error: Retry svn co edk2"
-	getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2" # incase interuptted svn update
+	getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2" # incase interrupted svn update
 fi	
 if [ ! -f "${edk2DIR}"/BaseTools/Source/C/bin/VfrCompile ]; then
 	echob "  Make EDK II Revision $basetools BaseTools"
 	make -C "${edk2DIR}"/BaseTools
-	wait
 fi	
 cd "${edk2DIR}"
 getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
 if [ -d "${buildDIR}" ] && [ "$cloverUpdate" == "Yes" ]; then
 	echob "Clover updated, so rm the build folder"
 	rm -Rf "${buildDIR}"/*
-	rm -f "${CloverDIR}"/.patchdone
 fi
 
-if  [ "$cloverUpdate" == "Yes" ] || [ "$access" == "co" ] || [ ! -f "${CloverDIR}"/.patchdone ]; then
-	if [ "$access" == "co" ]; then # should only need to do this once, on checkout.
+if [[ "$cloverUpdate" == "Yes" || "$access" == "co" ]]; then
+	if [[ "$access" == "co" ]]; then # should only need to do this once, on checkout.
 		echob "Copy Files/HFSPlus Clover/HFSPlus" 
 		cp -R "${HFSPlus}/" "${CloverDIR}"/HFSPlus
 	fi	
-	# probably good idea to do these just in case
-	echo "Patch STLVNUB tools_def.txt"
-	sed -E "s!/opt/local!$CG_PREFIX!g"  < "${WORKDIR}"/Files/tools_def.txt > "${edk2DIR}"/Conf/tools_def.txt # changes CG_PREFIX
-	touch "${CloverDIR}"/.patchdone
 fi
 
-echob "  Exiting function getSOURCEFILE:"
-echob "Exiting function getSOURCE:";echo
+
+# Create default edk2 files in edk2/Conf if not exists
+./edksetup.sh
+
+# Path GCC Prefix
+echo "Patching edk2/Conf/tools_def.txt"
+sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
+  > "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
+
+#echob "  Exiting function getSOURCEFILE:"
+#echob "Exiting function getSOURCE:"
+echo
 }
 
-# compiles X64 or IA32 versions of Clover and rEFIt_UEFI   
+# compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
 	echob "Entering function cleanRUN:"
 	builder=gcc
@@ -286,21 +270,21 @@ function cleanRUN(){
 		archBits='x64 ia32'
 		cd "${CloverDIR}"
 		for az in $archBits ; do
-			echob "  running ./ebuild.sh -gcc${mygccVers} -$az -$style"
+			echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 			./ebuild.sh -gcc${mygccVers} -$az -"$style" 
 			wait
-			checkit "Clover$az $theStyle" 		
-	 	done
+			checkit "Clover$az $theStyle"
+		done
 		cd "${rEFItDIR}"
-		echob "  Building rEFIt32: $builder $style `date -j +%T`"
-		echob "  With build32.sh"
+		echob "	 Building rEFIt32: $builder $style $(date -j +%T)"
+		echob "	 With build32.sh"
 		./"build32.sh" 
 		checkit "rEFIT_UEFI_$theBits: $theStyle" 
 	else
-	   	cd "${CloverDIR}"
-		echob "  running ./ebuild.sh -gcc${mygccVers} -X64 -$style"
+		cd "${CloverDIR}"
+		echob "	 running ./ebuild.sh -gcc${mygccVers} -X64 -$style"
 		./ebuild.sh -gcc${mygccVers} -x64 -"$style" 
-		checkit "CloverX64 $theStyle" 		
+		checkit "CloverX64 $theStyle"
 	fi
 	echob "Exiting function cleanRUN:";echo
 }
@@ -349,7 +333,7 @@ gccDIRS="/usr/local /opt/local $WORKDIR/src/CloverTools" # user has 3 choices fo
 echob "Entering function checkGCC:"
 echo "  Checking gcc $gccVers INSTALL status"
 for theDIRS in $gccDIRS; do # check install dirs for gcc
-CG_PREFIX="${theDIRS}" #else 
+CG_PREFIX="${theDIRS}" #else
 echo "  Checking ${theDIRS}"
 if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
 	lVers=`"${CG_PREFIX}"/bin/i686-linux-gnu-gcc --version | grep '(GCC)'`
@@ -537,7 +521,7 @@ function makePKG(){
 		echob "********************************"
 	fi
 	if [ "${cloverUpdate}" == "Yes" ] || [ "$built" == "No" ]; then
-		if [ ! -f "${CloverDIR}"/Lvers.txt ] || [ "$cloverUpdate" == "Yes" ] || [ ! -f "${CloverDIR}"/.patchdone ]; then
+		if [ ! -f "${CloverDIR}"/Lvers.txt ] || [ "$cloverUpdate" == "Yes" ]; then
 			echob "Getting SVN Source, Hang ten…"
 			getSOURCE
 			versionToBuild="${CloverREV}"
@@ -622,17 +606,19 @@ function makePKG(){
    		open "${buildDIR}"/Clover/${theStyle}_GCC${mygccVers}
    	fi	
 }
-#check versionBuilt
-gccVersions=`curl -s http://gcc.gnu.org/index.html | grep 'released'` # get latest version info ;)
-gccVers="${gccVersions:33:5}"  # and use it.
-if [ -f "${filesDIR}"/.gccVersion ];then
-	gccVers=`cat "${filesDIR}"/.gccVersion`
-elif [ "${gccVers}" != "${gccVersToUse}" ]; then
-	echob "error!!" # may be possible that this may not work
-	echob "check GCC ${gccVersions:33:5} is ACTUALLY available"
-	echob "EXPERIMENTAL!!!"
-	tput bel
-	exit
+
+# Check versionBuilt
+if [[ -f "${filesDIR}/.gccVersion" ]];then
+	gccVers=$(cat "${filesDIR}/.gccVersion")
+else
+	gccVers=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
+	if [[ "${gccVers}" != "${gccVersToUse}" ]]; then
+		echob "error!!"			  # may be possible that this may not work
+		echob "check GCC ${gccVers} is ACTUALLY available"
+		echob "EXPERIMENTAL!!!"
+		tput bel
+		exit
+	fi
 fi
 
 # setup gcc
