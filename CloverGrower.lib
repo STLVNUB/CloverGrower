@@ -1,0 +1,26 @@
+#! /bin/bash
+
+# Usefull functions for CloverGrower
+
+function echob() {
+	echo $(tput bold)"$1"$(tput sgr0)
+}
+
+# Convert argument to lowercase
+function lc() {
+    echo "$1" | tr '[A-Z]' '[a-z]'
+}
+
+function get_hours() {
+	starth=$(date "+%H")
+	if [[ $starth -ge 04 && $starth -le 12 ]]; then
+		hours="Morning"
+	elif [[ $starth -ge 12 && $starth -le 17 ]]; then
+		hours="Afternoon"
+	elif [[ $starth -ge 18 && $starth -le 21 ]]; then
+		hours="Evening"
+	else
+		hours="Night"
+	fi
+    echo $(printf "%-50s" $hours)
+}
