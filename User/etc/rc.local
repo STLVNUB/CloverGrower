@@ -18,7 +18,7 @@ if [ "$theBootFlag" != "" ]; then
 	for theMountFlag in $theBootFlag;do # need to do this if
 		if [ "$theMountFlag" == "MountEFI=Yes" ]; then
 			echo "AutoMount ${theRoot}s1  Enabled" 
-			[ ! -d /Volumes/EFI ] && mkdir /Volumes/EFI mount -t msdos /dev/"${theRoot}"s1 /Volumes/EFI	
+			[ ! -d /Volumes/EFI ] && mkdir /Volumes/EFI && mount -t msdos /dev/"${theRoot}"s1 /Volumes/EFI	
 			exit
 		fi		
 	done
