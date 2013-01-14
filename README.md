@@ -3,7 +3,6 @@ CloverGrower
 
 Compile Tool For Clover UEFI/bios OS X Booter
 
-<<<<<<< HEAD
 Downloads, Compiles and makes package for Clover UEFI/bios bootloader by slice & company
 
 Boots the following: (will add more as they come to light)
