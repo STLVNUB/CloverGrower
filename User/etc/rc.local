@@ -15,7 +15,7 @@ xxd -r -p /boot-log.txt >> /boot.log
 rm /log.txt
 rm /boot-log.txt
 if [ "$theBootFlag" != "" ]; then
-	for theMountFlag in $theBootFlag;do # need to do this if
+	for theMountFlag in $theBootFlag;do # need to do this if more than 1 parameter in boot-args
 		if [ "$theMountFlag" == "MountEFI=Yes" ]; then
 			echo "AutoMount ${theRoot}s1  Enabled" 
 			[ ! -d /Volumes/EFI ] && mkdir /Volumes/EFI && mount -t msdos /dev/"${theRoot}"s1 /Volumes/EFI	
