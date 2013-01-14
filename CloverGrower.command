@@ -58,7 +58,6 @@ export WORKDIR="$CLOVER_GROWER_DIR"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
-HFSPlus="${WORKDIR}"/Files/HFSPlus
 filesDIR="${WORKDIR}"/Files
 UserDIR="${WORKDIR}"/User/etc
 etcDIR="${WORKDIR}"/Files/etc
@@ -139,14 +138,12 @@ function checkit(){
 function getSOURCEFILE(){
 edk2REV=""
 edk2local=""
-access="up"
 update=""		
 if [ ! -d "$1" ]; then
 	echob "    ERROR:"
 	echo "          Local $1 Folder Not Found.."
 	echob "          Making Local ${1} Folder..."
 	mkdir "$1"
-	access="co"
 	getREVISIONS${1} Initial # flag to write initial revision
 	echob "    Checking out Remote $1:"
 	echob "    revision: "$(cat $1/Lvers.txt)
@@ -161,26 +158,21 @@ if [ "${cloverUpdate}" == "Yes" ];then
 		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 		if [  "${edk2REV}" == "${edk2Local}" ]; then
 			update="No"
-			echob "    Checked edk2 SNV, 'No updates were found...'"
+			echob "    Checked edk2 SVN, 'No updates were found...'"
 			return
 		else
 			echo "    Remote Svn at revision: $edk2REV"
 			echo "    Local edk2 at revision: $edk2Local"
 			echob "    Will Auto Update edk2 From $edk2Local TO $edk2REV As Well"
 			tput bel
-			access="up"
 			echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# updated revision, so write it	
 			update="Yes"	
 		fi
 	fi
 fi
-echo "   cd $1"
-cd "$1"
-echo "   svn $access" # oh yeah
+echo "   svn up" # oh yeah
 svn up
-echo "   cd .."
-cd ..
-checkit "    Svn $access $1" "$2"
+checkit "    Svn up $1" "$2"
 echo
 }
 
@@ -440,7 +432,7 @@ function makePKG(){
 	cloverUpdate="No"
 	clear;echo
 	echob "********************************************"
-	echob "*             Good $hours               *"         
+	echob "*             Good $hours               *"
 	echob "*      Welcome To CloverGrower V$myV       *"
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
