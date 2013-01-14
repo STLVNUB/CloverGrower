@@ -106,12 +106,12 @@ esac
 # set up Revisions
 function getREVISIONSClover(){
     # Clover
-    export CloverREV=$(svn info svn://svn.code.sf.net/p/cloverefiboot/code | sed -n 's/^Revision: *//p')
+    export CloverREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code)
     if [ "$1" == "Initial" ]; then
         echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
     fi
     # rEFIt
-    export rEFItREV=$(svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | sed -n 's/^Last Changed Rev: *//p')
+    export rEFItREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI)
     export cloverVers="${CloverREV}:${rEFItREV}"
 }
 
@@ -466,8 +466,8 @@ function makePKG(){
 	if [ -f "${CloverDIR}"/Lvers.txt ]; then # if NOT there, must be New, so check out needed
 		cloverLVers=$(cat "${CloverDIR}"/Lvers.txt)
 		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
-		cloverLocal=$(svn info "${edk2DIR}"/Clover | sed -n 's/^Last Changed Rev: *//p')
-		if [ "${cloverLVers}" != "${CloverREV}" ]; then
+		cloverLocal=$(getSvnRevision "${CloverDIR}")
+        if [ "${cloverLVers}" != "${CloverREV}" ]; then
 			echob "Update Detected:"
 			cloverUpdate="Yes"
 			versionToBuild="${CloverREV}" # use it

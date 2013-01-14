@@ -24,3 +24,11 @@ function get_hours() {
 	fi
     echo $(printf "%-50s" $hours)
 }
+
+# Function that return svn revision
+function getSvnRevision() {
+    # Arguments:
+    #    $1: location of an svn repository (directory or URL)
+	[[ $# -ne 1 ]] && echo "getSvnRevision: invalid number of arguments" >&2 && exit 1
+    svn info "$1" | sed -n 's/^Revision: *//p'
+}
