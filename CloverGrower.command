@@ -93,7 +93,7 @@ fi
 workSpaceAvail="$workSpace"
 
 #what system
-theSystem=`uname -r`
+theSystem=$(uname -r)
 theSystem="${theSystem:0:2}"
 case "${theSystem}" in
     [0-8]) sysmess="unsupported" ;;
@@ -154,7 +154,7 @@ if [ ! -d "$1" ]; then
 	access="co"
 	getREVISIONS${1} Initial # flag to write initial revision
 	echob "    Checking out Remote $1:"
-	echob "    revision: "`cat $1/Lvers.txt`
+	echob "    revision: "$(cat $1/Lvers.txt)
 	echo "    svn co $2"
 	svn co "$2" "$1"
 	return 
@@ -163,7 +163,7 @@ fi
 if [ "${cloverUpdate}" == "Yes" ];then		
 	getREVISIONSedk2 "Test" # "test" is dummy flag, does NOT write revision in folder
 	if [ "$1" == "edk2" ]; then # check for updates
-		edk2Local=`cat "${edk2DIR}"/Lvers.txt`
+		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 		if [  "${edk2REV}" == "${edk2Local}" ]; then
 			update="No"
 			echob "    Checked edk2 SNV, 'No updates were found...'"
@@ -210,7 +210,7 @@ getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 if [[ -d "${edk2DIR}"/BaseTools || "${cloverUpdate}" == "Yes" ]]; then
     # grab basetools revision, rebuild tools IF revision has changed
     basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
-	Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
+	Lbasetools=$(cat "${edk2DIR}"/Lbasetools.txt)
 	if [ "$basetools" -gt "$Lbasetools" ]; then # rebuild tools IF revision has changed
 		echob "    BaseTools @ Revision $basetools"
 		echob "    Updated BaseTools Detected"
@@ -260,12 +260,12 @@ function cleanRUN(){
 	echob "Entering function cleanRUN:"
 	builder=gcc
 	bits=$1
-	theBits=`echo "$bits" | awk '{print toupper($0)}'`
-	theBuilder=`echo "$builder" | awk '{print toupper($0)}'`
-	theStyle=`echo "$style" | awk '{print toupper($0)}'`
-    clear
-	echo "  Starting $buildMode Process: `date -j +%T`"  
-	echo "  Building Clover$theBits: gcc${mygccVers} $style" 
+	theBits=$(echo "$bits" | awk '{print toupper($0)}')
+	theBuilder=$(echo "$builder" | awk '{print toupper($0)}')
+	theStyle=$(echo "$style" | awk '{print toupper($0)}')
+	clear
+	echo "	Starting $buildMode Process: $(date -j +%T)"
+	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	if [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 ia32'
 		cd "${CloverDIR}"
@@ -336,7 +336,7 @@ for theDIRS in $gccDIRS; do # check install dirs for gcc
 CG_PREFIX="${theDIRS}" #else
 echo "  Checking ${theDIRS}"
 if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
-	lVers=`"${CG_PREFIX}"/bin/i686-linux-gnu-gcc --version | grep '(GCC)'`
+	lVers=$("${CG_PREFIX}/bin/i686-linux-gnu-gcc" --version | grep '(GCC)')
 	lVers="${lVers:25:5}"
 	ggVers="${lVers:0:1}${lVers:2:1}" 
 	export mygccVers="${ggVers}" # needed for BUILD_TOOLS e.g GCC46
@@ -417,7 +417,7 @@ echo "  Press any key to start the process..."
 read
 echo "  $sudoIT Files/buildgcc -all ${CG_PREFIX} $gccVers"
 echob "  Starting CloverGrower Compile Tools process..." 
-STARTM=`date -u "+%s"`
+STARTM=$(date -u "+%s")
 date
 "$sudoIT" ./buildgcc.sh -all "${CG_PREFIX}" "$gccVers" #& # build all to CG_PREFIX with gccVers
 wait
@@ -434,13 +434,13 @@ elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
 fi
 }
 
-# main function	
+# main function
 function Main(){
-STARTD=`date -j "+%d-%h-%Y"`
+STARTD=$(date -j "+%d-%h-%Y")
 theARCHS="$1"
 buildMode=">>>>New<<<< Build "
-edk2Local=`cat "${edk2DIR}"/Lvers.txt`
-echo `date` 
+edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
+echo $(date)
 cloverLocal=${cloverLocal:=''}
 echob "*******************************************"
 echob "$buildMess"
@@ -448,8 +448,8 @@ echob "*    Revisions:- edk2: $edk2Local              *"
 echob "*              Clover: $cloverVers            *"
 echob "*    Using Flags: gcc$mygccVers ${targetBitsMess} $style  *"
 echob "*******************************************"
-STARTT=`date -j "+%H:%M"`
-STARTM=`date -u "+%s"`
+STARTT=$(date -j "+%H:%M")
+STARTM=$(date -u "+%s")
 cleanRUN "$theARCHS"
 }
 
@@ -476,14 +476,14 @@ function makePKG(){
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************";echo
-	echob "running '`basename $theProg`' on '$rootSystem'";echo
+	echob "running '$(basename $CMD)' on '$rootSystem'";echo
 	echob "Work Folder: $WORKDIR"
 	echob "Available  : ${workSpaceAvail} MB"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ] && [ "$target" != "64" ]; then # don't build IF pkg already here
 		if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
-			theBuiltVersion=`strings "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi | grep 'Clover revision:'`
+			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | grep 'Clover revision:')
 			theBuiltVersion="${theBuiltVersion:17:3}"
 			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
 				built="Yes"
@@ -503,8 +503,8 @@ function makePKG(){
 		fi
 	fi	
 	if [ -f "${CloverDIR}"/Lvers.txt ]; then # if NOT there, must be New, so check out needed
-		cloverLVers=`cat "${CloverDIR}"/Lvers.txt`
-		edk2Local=`cat "${edk2DIR}"/Lvers.txt`
+		cloverLVers=$(cat "${CloverDIR}"/Lvers.txt)
+		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 		cloverLocal=$(svn info "${edk2DIR}"/Clover | sed -n 's/^Last Changed Rev: *//p')
 		if [ "${cloverLVers}" != "${CloverREV}" ]; then
 			echob "Update Detected:"
@@ -529,7 +529,7 @@ function makePKG(){
 		if [ "${cloverUpdate}" == "Yes" ]; then
 			echob "svn changes for $CloverREV"
 			cd "${CloverDIR}"
-			changesSVN=`svn log -v -r "$CloverREV"`
+			changesSVN=$(svn log -v -r "$CloverREV")
 			echob "$changesSVN"
 			echob "Press any key…"
 			tput bel
@@ -543,21 +543,21 @@ function makePKG(){
 		tput bel
 	fi
 	if [ "$flagTime" == "Yes" ]; then
-		STOPBM=`date -u "+%s"`
-		RUNTIMEMB=`expr $STOPBM - $STARTM`
+		STOPBM=$(date -u "+%s")
+		RUNTIMEMB=$(expr $STOPBM - $STARTM)
 		if (($RUNTIMEMB>59)); then
-			TTIMEMB=`printf "%dm%ds\n" $((RUNTIMEMB/60%60)) $((RUNTIMEMB%60))`
+			TTIMEMB=$(printf "%dm%ds\n" $((RUNTIMEMB/60%60)) $((RUNTIMEMB%60)))
 		else
-			TTIMEMB=`printf "%ds\n" $((RUNTIMEMB))`
+			TTIMEMB=$(printf "%ds\n" $((RUNTIMEMB)))
 		fi
 		echob "Clover	Grower Complete Build process took $TTIMEMB to complete..."
 	else
-		STOPM=`date -u "+%s"`
-		RUNTIMEM=`expr $STOPM - $STARTM`
+		STOPM=$(date -u "+%s")
+		RUNTIMEM=$(expr $STOPM - $STARTM)
 		if (($RUNTIMEM>59)); then
-			TTIMEM=`printf "%dm%ds\n" $((RUNTIMEM/60%60)) $((RUNTIMEM%60))`
+			TTIMEM=$(printf "%dm%ds\n" $((RUNTIMEM/60%60)) $((RUNTIMEM%60)))
 		else
-			TTIMEM=`printf "%ds\n" $((RUNTIMEM))`
+			TTIMEM=$(printf "%ds\n" $((RUNTIMEM)))
 		fi	
 		echob "Clover revision $cloverVers Compile process took $TTIMEM to complete" 
 	fi
@@ -624,9 +624,9 @@ fi
 # setup gcc
 gVers=""
 if [ -f "${WORKDIR}"/Files/.CloverTools ]; then # Path to GCC4?
-	export CG_PREFIX=`cat "${WORKDIR}"/Files/.CloverTools` # get PAth
+	export CG_PREFIX=$(cat "${WORKDIR}"/Files/.CloverTools) # get PAth
 	if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
-		gVers=`"${CG_PREFIX}"/bin/i686-linux-gnu-gcc --version | grep '(GCC)'`
+		gVers=$("${CG_PREFIX}/bin/i686-linux-gnu-gcc" --version | grep '(GCC)')
 		gVers="${gVers:25:5}"
 	fi
 fi		
