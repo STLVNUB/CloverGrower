@@ -14,6 +14,3 @@ Windows:
 Linux:
 Unix:
 
-=======
-Downloads, Compiles and makes package of Clover UEFI OS X booter 
->>>>>>> Create README.md
