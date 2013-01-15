@@ -211,7 +211,7 @@ if [[ -d "${edk2DIR}"/BaseTools || "${cloverUpdate}" == "Yes" ]]; then
     # grab basetools revision, rebuild tools IF revision has changed
     basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
 	Lbasetools=$(cat "${edk2DIR}"/Lbasetools.txt)
-	if [ "$basetools" -gt "$Lbasetools" ]; then # rebuild tools IF revision has changed
+	if [ "$basetools" != "$Lbasetools" ]; then # rebuild tools IF revision has changed
 		echob "    BaseTools @ Revision $basetools"
 		echob "    Updated BaseTools Detected"
 		echob "    Clean EDK II BaseTools";echo
@@ -484,7 +484,7 @@ function makePKG(){
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ] && [ "$target" != "64" ]; then # don't build IF pkg already here
 		if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
 			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | grep 'Clover revision:')
-			theBuiltVersion="${theBuiltVersion:17:3}"
+			theBuiltVersion="${theBuiltVersion:17:4}" # changed 3 to 4, DOH into 1000's now
 			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
 				built="Yes"
 			else
