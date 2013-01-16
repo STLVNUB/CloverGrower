@@ -56,6 +56,7 @@ fi
 
 #vars
 export WORKDIR="$CLOVER_GROWER_DIR"
+export TOOLCHAIN="${CLOVER_GROWER_DIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
@@ -249,40 +250,26 @@ function cleanRUN(){
 }
 
 # sets up 'new' sysmlinks for gcc47
-function MakeSymLinks()
+function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
-{
-    ARCHs="ia32"
-    TARGET="i686-linux-gnu"
-    DoLinks
-    ARCHs="x64"
-    TARGET="x86_64-linux-gnu"
-    DoLinks
+    DoLinks "ia32" "i686-linux-gnu"
+    DoLinks "x64"  "x86_64-linux-gnu"
 }
 
 #makes 'new' syslinks
-function DoLinks(){  
-	if [ ! -f "${CG_PREFIX}"/"$ARCHs"/gcc ] && [ -d "${CG_PREFIX}"/"$ARCHs" ]; then
-   		if [ -f "${CG_PREFIX}"/bin/$TARGET-gcc ]; then
-   			echo "Attempting To Fix your symlinks Folder"   			
-   			rm -Rf "${CG_PREFIX}"/"$ARCHs"
-   	   	fi
-   	   	echo "  Making 'NEW' symlinks Folder $ARCHs"
-   		[ ! -d "${CG_PREFIX}"/"$ARCHs" ] && mkdir -p "${CG_PREFIX}"/"$ARCHs"
-      	echo "  Fixing your $gccVers Symlinks"
-   		pushd "${CG_PREFIX}"/"$ARCHs" > /dev/null
-    	ln -s "${CG_PREFIX}"/bin/$TARGET-gcc "${CG_PREFIX}"/$ARCHs/gcc #2> /dev/null 
-    	ln -s "${CG_PREFIX}"/bin/$TARGET-ld "${CG_PREFIX}"/$ARCHs/ld #2> /dev/null 
-    	ln -s "${CG_PREFIX}"/bin/$TARGET-objcopy "${CG_PREFIX}"/$ARCHs/objcopy #2> /dev/null 
-    	ln -s "${CG_PREFIX}"/bin/$TARGET-ar "${CG_PREFIX}"/$ARCHs/ar #2> /dev/null 
-    	wait
-    	popd  > /dev/null
-    	echo "  Finished: Fixing"
-   		echo "  symlinks are in: ${CG_PREFIX}/$ARCHs"
+function DoLinks(){
+    ARCH="$1"
+    TARGET="$2"
+    if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
+        mkdir -p "${TOOLCHAIN}/${ARCH}"
+        echo "  Fixing your $gccVers Symlinks"
+        for bin in gcc ar ld objcopy; do
+            ln -sf "${CG_PREFIX}"/bin/$TARGET-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
+        done
+        echo "  Finished: Fixing"
+        echo "  symlinks are in: ${TOOLCHAIN}/$ARCH"
     fi
-    echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
-	
 }
 
 # checks for gcc install and installs if NOT found
@@ -299,7 +286,7 @@ function checkGCC(){
             export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
             echo "  gcc $lVers detected in ${theDIRS}"
             read -p "  Do you want to use it [y/n] " choose
-            case $choose in
+            case "$choose" in
                 n|N)
                      CG_PREFIX=""
                      break
@@ -371,6 +358,7 @@ tput bel
 cd ..
 if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
 	echo "${CG_PREFIX}" >"${filesDIR}"/.CloverTools # if 2 above are found write into gcc config file
+	MakeSymLinks
 	flagTime="Yes"
 	return 
 elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
@@ -587,10 +575,12 @@ if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
 	fi
 fi
 
-[[ "${gVers}" == "" ]] && checkGCC
+if [[ "${gVers}" == "" || ! -x "${TOOLCHAIN}"/ia32/gcc || ! -x "${TOOLCHAIN}"/x64/gcc ]];then
+    checkGCC
+    [[ -n "${CG_PREFIX}" ]] && echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
+fi
 
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC47
-export TOOLCHAIN=$(cat "${filesDIR}"/.CloverTools)
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No"
