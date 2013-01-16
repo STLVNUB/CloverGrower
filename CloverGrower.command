@@ -125,17 +125,6 @@ function getREVISIONSedk2(){
     getSvnRevision "$edk2DIR" > "${edk2DIR}"/Lvers.txt # update edk2 local revision
 }
 
-# simple check return value function, does it actually work!!
-function checkit(){
-	return_val=$?
-	if [ ${return_val} == "0" ]; then
-		echob "$1 OK"
-	else
-		echob "$1 $2 error!!"
-		exit 1
-	fi
-}			
-
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 # return code:

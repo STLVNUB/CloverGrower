@@ -25,6 +25,21 @@ function get_hours() {
     printf "%-9s" $hours
 }
 
+# Simple check return value function
+function checkit(){
+	return_val=$?
+	local msg="$1"
+	local error_msg="${2:-}"
+	if [[ "${return_val}" -eq 0 ]]; then
+		echob "$msg OK"
+        return $return_val
+	else
+		echob "$msg $error_msg ERROR!!"
+		exit $return_val
+	fi
+}
+
+
 # Function that return svn revision
 function getSvnRevision() {
     # Arguments:
