@@ -10,3 +10,4 @@ Files/.gccVersion
 # Directories that we doesn't need to track
 builtPKG/
 src/
+Toolchain/
