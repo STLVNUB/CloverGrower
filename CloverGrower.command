@@ -120,12 +120,7 @@ function getREVISIONSClover(){
 function getREVISIONSedk2(){
 	# EDK2
 	export edk2REV=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/ | sed -n 's/^Revision: *//p')
-	if [ "$1" == "Initial" ]; then
-		# grab basetools revision, rebuild tools IF revision has changed
-		basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
-		echo "${edk2REV}"   > "${edk2DIR}"/Lvers.txt      # update edk2 revision
-		echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt # update basetools revision
-	fi
+	echo "${edk2REV}"   > "${edk2DIR}"/Lvers.txt      # update edk2 revision
 }
 
 # simple check return value function, does it actually work!!
@@ -161,7 +156,7 @@ if [ ! -d "$1" ]; then
 fi
 
 if [ "${cloverUpdate}" == "Yes" ];then		
-	getREVISIONSedk2 "Test" # "test" is dummy flag, does NOT write revision in folder
+	getREVISIONSedk2 
 	if [ "$1" == "edk2" ]; then # check for updates
 		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 		if [  "${edk2REV}" == "${edk2Local}" ]; then
@@ -191,7 +186,6 @@ echo
 
 # sets up svn sources
 function getSOURCE(){
-#echob "Entering function getSOURCE:"
 if [ ! -d "${srcDIR}" ]; then
 	echob "  Make src Folder.."
 	mkdir "${srcDIR}"
@@ -204,54 +198,29 @@ if [ -d "${edk2DIR}"/Build/CloverX64 ] || [  -d "${edk2DIR}"/Build/CloverIA32 ];
 fi	
 
 cd "${srcDIR}"
-#echob "  Entering function getSOURCEFILE:"
 getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 
-if [[ -d "${edk2DIR}"/BaseTools || "${cloverUpdate}" == "Yes" ]]; then
-    # grab basetools revision, rebuild tools IF revision has changed
-    basetools=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2/BaseTools/ | sed -n 's/^Revision: *//p')
-	Lbasetools=$(cat "${edk2DIR}"/Lbasetools.txt)
-	if [ "$basetools" != "$Lbasetools" ]; then # rebuild tools IF revision has changed
-		echob "    BaseTools @ Revision $basetools"
-		echob "    Updated BaseTools Detected"
-		echob "    Clean EDK II BaseTools";echo
-		make -C "${edk2DIR}"/BaseTools clean
-	else
-		echo
-	fi
-elif [ ! -d "${edk2DIR}"/BaseTools ]; then
-	echob "    Error: Retry svn co edk2"
-	getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2" # incase interrupted svn update
-fi	
 if [ ! -f "${edk2DIR}"/BaseTools/Source/C/bin/VfrCompile ]; then
 	echob "  Make EDK II Revision $basetools BaseTools"
 	make -C "${edk2DIR}"/BaseTools
 fi	
+
 cd "${edk2DIR}"
 getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
+
 if [ -d "${buildDIR}" ] && [ "$cloverUpdate" == "Yes" ]; then
 	echob "Clover updated, so rm the build folder"
 	rm -Rf "${buildDIR}"/*
 fi
 
-if [[ "$cloverUpdate" == "Yes" || "$access" == "co" ]]; then
-	if [[ "$access" == "co" ]]; then # should only need to do this once, on checkout.
-		echob "Copy Files/HFSPlus Clover/HFSPlus" 
-		cp -R "${HFSPlus}/" "${CloverDIR}"/HFSPlus
-	fi	
+if [ "$access" == "co" ]; then # should only need to do this once, on checkout.
+	echob "Copy Files/HFSPlus Clover/HFSPlus" 
+	cp -R "${HFSPlus}/" "${CloverDIR}"/HFSPlus
+	# Path GCC Prefix
+	echob "Patching edk2/Conf/tools_def.txt"
+	sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
+  	> "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
 fi
-
-
-# Create default edk2 files in edk2/Conf if not exists
-./edksetup.sh
-
-# Path GCC Prefix
-echo "Patching edk2/Conf/tools_def.txt"
-sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
-  > "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
-
-#echob "  Exiting function getSOURCEFILE:"
-#echob "Exiting function getSOURCE:"
 echo
 }
 
@@ -572,11 +541,13 @@ function makePKG(){
 			 	rm -rf "${CloverDIR}"/CloverPackage/sym
 			fi
 			if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
-				echob "copy User rc Files To Package"
 				if [ -f "${UserDIR}"/rc.local ]; then
+					echob "copy User rc.local To Package"
 					cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-				fi	
+				fi
+					
 				if [ -f "${UserDIR}"/rc.shutdown.local ]; then
+					echob "copy User rc.shutdown.local To Package"
 					cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
 				fi	
 			fi	
@@ -639,4 +610,4 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No"
 makePKG "$target" # do complete build
-echob "Good $hours"
+echob "Good $hours."
