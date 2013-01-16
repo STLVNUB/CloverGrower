@@ -21,7 +21,8 @@ if [ "$1" == "" ]; then
 	target="X64/IA32"
 fi
 
-set -ue
+# don't use -e
+set -u
 
 theBoss=$(id -ur)
 hours=$(get_hours)
@@ -66,10 +67,12 @@ edk2DIR="${WORKDIR}"/src/edk2
 CloverDIR="${WORKDIR}"/src/edk2/Clover
 rEFItDIR="${WORKDIR}"/src/edk2/Clover/rEFIt_UEFI
 buildDIR="${WORKDIR}"/src/edk2/Build
-buildAPPS="${WORKDIR}"/src/edk2/BaseTools/Source/C/bin
 cloverPKGDIR="${WORKDIR}"/src/edk2/Clover/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
+
+# Some Flags
+buildClover=0
 
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
 [[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
@@ -118,8 +121,8 @@ function getREVISIONSClover(){
 # set up Revisions
 function getREVISIONSedk2(){
 	# EDK2
-	export edk2REV=$(svn info http://edk2.svn.sourceforge.net/svnroot/edk2/ | sed -n 's/^Revision: *//p')
-	echo "${edk2REV}"   > "${edk2DIR}"/Lvers.txt      # update edk2 revision
+	export edk2REV=$(getSvnRevision http://edk2.svn.sourceforge.net/svnroot/edk2)
+    getSvnRevision "$edk2DIR" > "${edk2DIR}"/Lvers.txt # update edk2 local revision
 }
 
 # simple check return value function, does it actually work!!
@@ -135,85 +138,89 @@ function checkit(){
 
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
-function getSOURCEFILE(){
-edk2REV=""
-edk2local=""
-update=""		
-if [ ! -d "$1" ]; then
-	echob "    ERROR:"
-	echo "          Local $1 Folder Not Found.."
-	echob "          Making Local ${1} Folder..."
-	mkdir "$1"
-	getREVISIONS${1} Initial # flag to write initial revision
-	echob "    Checking out Remote $1:"
-	echob "    revision: "$(cat $1/Lvers.txt)
-	echo "    svn co $2"
-	svn co "$2" "$1"
-	return 
-fi
+# return code:
+#     0: no update found
+#     1: update found
+function getSOURCEFILE() {
+    if [ ! -d "$1" ]; then
+        echob "    ERROR:"
+        echo  "        Local $1 Folder Not Found.."
+        echob "        Making Local ${1} Folder..."
+        mkdir "$1"
+        echob "    Checking out Remote $1 revision "$(getSvnRevision "$2")
+        echo  "    svn co $2"
+        svn co "$2" "$1"
+        getREVISIONS${1} Initial # flag to write initial revision
+        return 1
+    fi
 
-if [ "${cloverUpdate}" == "Yes" ];then		
-	getREVISIONSedk2 
-	if [ "$1" == "edk2" ]; then # check for updates
-		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
-		if [  "${edk2REV}" == "${edk2Local}" ]; then
-			update="No"
-			echob "    Checked edk2 SVN, 'No updates were found...'"
-			return
-		else
-			echo "    Remote Svn at revision: $edk2REV"
-			echo "    Local edk2 at revision: $edk2Local"
-			echob "    Will Auto Update edk2 From $edk2Local TO $edk2REV As Well"
-			tput bel
-			echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# updated revision, so write it	
-			update="Yes"	
-		fi
-	fi
-fi
-echo "   svn up" # oh yeah
-svn up
-checkit "    Svn up $1" "$2"
-echo
+    local localRev=$(getSvnRevision "$1")
+    local remoteRev=$(getSvnRevision "$2")
+    if [[ "${localRev}" == "${remoteRev}" ]]; then
+        echob "    Checked $1 SVN, 'No updates were found...'"
+        return 0
+    fi
+    echob "    Checked $1 SVN, 'Updates found...'"
+    echob "    Auto Updating $1 From $localRev to $remoteRev ..."
+    tput bel
+    (cd "$1" && svn up >/dev/null)
+    checkit "    Svn up $1" "$2"
+    return 1
 }
 
 # sets up svn sources
-function getSOURCE(){
-if [ ! -d "${srcDIR}" ]; then
-	echob "  Make src Folder.."
-	mkdir "${srcDIR}"
-fi	
-if [ ! -d "${edk2DIR}"/Build/CloverX64 ] && [ ! -d "${edk2DIR}"/Build/CloverIA32 ]; then
-	buildMode=">CleanAll< Build  "
-fi
-if [ -d "${edk2DIR}"/Build/CloverX64 ] || [  -d "${edk2DIR}"/Build/CloverIA32 ]; then
-	buildMode=">>>Clean<<< Build "
-fi	
+function getSOURCE() {
+    if [ ! -d "${srcDIR}" ]; then
+        echob "  Make src Folder.."
+        mkdir "${srcDIR}"
+    fi
+    if [ ! -d "${edk2DIR}"/Build/CloverX64 ] && [ ! -d "${edk2DIR}"/Build/CloverIA32 ]; then
+        buildMode=">CleanAll< Build  "
+    fi
+    if [ -d "${edk2DIR}"/Build/CloverX64 ] || [  -d "${edk2DIR}"/Build/CloverIA32 ]; then
+        buildMode=">>>Clean<<< Build "
+    fi
 
-cd "${srcDIR}"
-getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+    # Don't update edk2 if no Clover updates
+    if [[ "${cloverUpdate}" == "Yes" ]]; then
+        # Get edk2 source
+        cd "${srcDIR}"
+        getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+        local buildBaseTools=$?
 
-if [ ! -f "${edk2DIR}"/BaseTools/Source/C/bin/VfrCompile ]; then
-	echob "  Make EDK II Revision $basetools BaseTools"
-	make -C "${edk2DIR}"/BaseTools
-fi	
+        # Is edk2 need to be update
+        if [[ "$buildBaseTools" -eq 1 ]]; then
+            cd "${edk2DIR}"
 
-cd "${edk2DIR}"
-getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
+            # Create default edk2 files in edk2/Conf if not exists
+            ./edksetup.sh >/dev/null
 
-if [ -d "${buildDIR}" ] && [ "$cloverUpdate" == "Yes" ]; then
-	echob "Clover updated, so rm the build folder"
-	rm -Rf "${buildDIR}"/*
-fi
+            # Path GCC Prefix
+            echob "    Patching edk2/Conf/tools_def.txt"
+            sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
+             > "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
 
-if [ "$access" == "co" ]; then # should only need to do this once, on checkout.
-	echob "Copy Files/HFSPlus Clover/HFSPlus" 
-	cp -R "${HFSPlus}/" "${CloverDIR}"/HFSPlus
-	# Path GCC Prefix
-	echob "Patching edk2/Conf/tools_def.txt"
-	sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
-  	> "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
-fi
-echo
+            make -C BaseTools clean &>/dev/null
+            # Basetool will be build automatically when Clover will be build
+        fi
+        echo
+    fi
+
+    # Get Clover source
+    cd "${edk2DIR}"
+    getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
+    buildClover=$?
+
+    # Is Clover need to be update
+    if [[ "$buildClover" -eq 1 ]]; then
+        echob "    Clover updated, so rm the build folder"
+        rm -Rf "${buildDIR}"/*
+
+        echob "    Copy Files/HFSPlus Clover/HFSPlus"
+        cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
+    fi
+
+    echo
 }
 
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
@@ -462,46 +469,56 @@ function makePKG(){
 			fi	
 		fi
 	fi	
-	if [ -f "${CloverDIR}"/Lvers.txt ]; then # if NOT there, must be New, so check out needed
-		cloverLVers=$(cat "${CloverDIR}"/Lvers.txt)
-		edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
-		cloverLocal=$(getSvnRevision "${CloverDIR}")
-        if [ "${cloverLVers}" != "${CloverREV}" ]; then
-			echob "Update Detected:"
-			cloverUpdate="Yes"
-			versionToBuild="${CloverREV}" # use it
-		elif [ "${cloverLocal}" != "${CloverREV}" ]; then
-			versionToBuild="${cloverLocal}"
-		else
-			versionToBuild="${cloverLVers}" # use local revision
-		fi
-		echob "*********Clover STATS***********"
-		echob "*   remote revision at ${CloverREV}     *" 
-		echob "*   local  revision at ${cloverLVers}     *"
-		echob "********************************"
-	fi
-	if [ "${cloverUpdate}" == "Yes" ] || [ "$built" == "No" ]; then
-		if [ ! -f "${CloverDIR}"/Lvers.txt ] || [ "$cloverUpdate" == "Yes" ]; then
-			echob "Getting SVN Source, Hang ten…"
-			getSOURCE
-			versionToBuild="${CloverREV}"
-		fi
-		if [ "${cloverUpdate}" == "Yes" ]; then
-			echob "svn changes for $CloverREV"
-			cd "${CloverDIR}"
-			changesSVN=$(svn log -v -r "$CloverREV")
-			echob "$changesSVN"
-			echob "Press any key…"
-			tput bel
-			read
-			cd ..
-		fi
-		echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
-		sleep 2
-		autoBuild "$1"
-		wait
-		tput bel
-	fi
+
+    echo
+	if [[ ! -d "${CloverDIR}" ]]; then
+		cloverUpdate="Yes"
+	else
+		cloverLVers=$(getSvnRevision "${CloverDIR}")
+		if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
+            echob "Clover Update Detected !"
+            cloverUpdate="Yes"
+            versionToBuild="${CloverREV}"
+			echob "*********Clover Package STATS***********"
+			echob "*       local  revision at ${cloverLVers}         *"
+			echob "*       remote revision at ${CloverREV}         *"
+			echob "*       Package Built   =  $built         *"
+			echob "****************************************"
+        else
+            echob "No Clover Update found. Current revision: ${cloverLVers}"
+        fi
+    fi
+
+    echo
+	if [[ "${cloverUpdate}" == "Yes" ]]; then
+        echob "Getting SVN Source, Hang ten…"
+        getSOURCE
+    fi
+
+    # If not already built force Clover build
+    if [[ "$built" == "No" ]]; then
+        echob "No build already done. Forcing Clover build"
+        buildClover=1
+    fi
+
+    if [[ "$buildClover" -eq 1 ]]; then
+        versionToBuild="${CloverREV}"
+        if [ "${cloverUpdate}" == "Yes" ]; then
+            echob "svn changes for $CloverREV"
+            cd "${CloverDIR}"
+            changesSVN=$(svn log -v -r "$CloverREV")
+            echob "$changesSVN"
+            echob "Press any key…"
+            tput bel
+            read
+            cd ..
+        fi
+        echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
+        sleep 3
+        autoBuild "$1"
+        tput bel
+    fi
+
 	if [ "$flagTime" == "Yes" ]; then
 		STOPBM=$(date -u "+%s")
 		RUNTIMEMB=$(expr $STOPBM - $STARTM)
@@ -529,7 +546,7 @@ function makePKG(){
 			case $choose in
 			m|M)
 			if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
-			 	rm -rf "${CloverDIR}"/CloverPackage/sym
+				rm -rf "${CloverDIR}"/CloverPackage/sym
 			fi
 			if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
 				if [ -f "${UserDIR}"/rc.local ]; then
@@ -556,17 +573,17 @@ function makePKG(){
 			rm -rf "${buildDIR}"
 			echob "open builtPKG/${versionToBuild}."
 			open "${builtPKGDIR}"/"${versionToBuild}"
-	    	tput bel	
+			tput bel
 			;;
-   			*)
-   			esac
-   		else
-   			echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made!!."
-   		fi
-   	else 
-   		echob "Skipping pkg creation, 64bit Build Only"
-   		open "${buildDIR}"/Clover/${theStyle}_GCC${mygccVers}
-   	fi	
+			*)
+			esac
+		else
+			echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made !"
+		fi
+	else
+		echob "Skipping pkg creation, 64bit Build Only"
+		open "${buildDIR}"/Clover/${theStyle}_GCC${mygccVers}
+	fi
 }
 
 # Check versionBuilt
