@@ -181,13 +181,15 @@ function getSOURCE() {
         if [[ "$buildBaseTools" -eq 1 ]]; then
             cd "${edk2DIR}"
 
-            # Create default edk2 files in edk2/Conf if not exists
+            # Remove old edk2 config files
+            rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+
+            # Create new default edk2 files in edk2/Conf
             ./edksetup.sh >/dev/null
 
-            # Path GCC Prefix
-            echob "    Patching edk2/Conf/tools_def.txt"
-            sed -E "s!/opt/local!$CG_PREFIX!g" "${WORKDIR}/Files/tools_def.txt" \
-             > "${edk2DIR}/Conf/tools_def.txt" # changes CG_PREFIX
+            # Patch edk2/Conf/tools_def.txt for GCC
+            patch --quiet -d "${edk2DIR}/Conf" < ${filesDIR}/tools_def.patch
+            checkit "    Patching edk2/Conf/tools_def.txt"
 
             make -C BaseTools clean &>/dev/null
             # Basetool will be build automatically when Clover will be build
@@ -279,7 +281,7 @@ function DoLinks(){
     	echo "  Finished: Fixing"
    		echo "  symlinks are in: ${CG_PREFIX}/$ARCHs"
     fi
-    echo "${CG_PREFIX}" >"${WORKDIR}"/Files/.CloverTools
+    echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
 	
 }
 
@@ -351,14 +353,14 @@ case $choose in
 	CG_PREFIX="${WORKDIR}"/src/CloverTools
 	sudoIT="sh" # if install to above NO need to sudo ( well hopefully)
 	;;
-   	o|O)
+	o|O)
 	CG_PREFIX="/opt/local"
 	;;
 	p|P)
 	CG_PREFIX="/usr/local"
-	;;       	
+	;;
 	*)
-	echob "  Good $hours"
+	echob "	 Good $hours"
 	exit 1
 	esac
 if [ "$sudoIT" == "sudo" ];then
@@ -381,7 +383,7 @@ wait
 tput bel
 cd ..
 if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
-	echo "${CG_PREFIX}" >"${WORKDIR}"/Files/.CloverTools # if 2 above are found write into gcc config file
+	echo "${CG_PREFIX}" >"${filesDIR}"/.CloverTools # if 2 above are found write into gcc config file
 	flagTime="Yes"
 	return 
 elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
@@ -591,8 +593,8 @@ fi
 
 # setup gcc
 gVers=""
-if [ -f "${WORKDIR}"/Files/.CloverTools ]; then # Path to GCC4?
-	export CG_PREFIX=$(cat "${WORKDIR}"/Files/.CloverTools) # get PAth
+if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
+	export CG_PREFIX=$(cat "${filesDIR}"/.CloverTools) # get PAth
 	if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
 		gVers=$("${CG_PREFIX}/bin/i686-linux-gnu-gcc" --version | grep '(GCC)')
 		gVers="${gVers:25:5}"
@@ -603,6 +605,7 @@ if [ "${gVers}" == "" ];  then
 fi
 echo "${gccVers}" > "${filesDIR}"/.gccVersion
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC47
+export TOOLCHAIN=$(cat "${filesDIR}"/.CloverTools)
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No"
