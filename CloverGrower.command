@@ -287,52 +287,39 @@ function DoLinks(){
 
 # checks for gcc install and installs if NOT found
 function checkGCC(){
-export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
-gccDIRS="/usr/local /opt/local $WORKDIR/src/CloverTools" # user has 3 choices for gcc install
-echob "Entering function checkGCC:"
-echo "  Checking gcc $gccVers INSTALL status"
-for theDIRS in $gccDIRS; do # check install dirs for gcc
-CG_PREFIX="${theDIRS}" #else
-echo "  Checking ${theDIRS}"
-if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
-	lVers=$("${CG_PREFIX}/bin/i686-linux-gnu-gcc" --version | grep '(GCC)')
-	lVers="${lVers:25:5}"
-	ggVers="${lVers:0:1}${lVers:2:1}" 
-	export mygccVers="${ggVers}" # needed for BUILD_TOOLS e.g GCC46
-	if [ "${ggVers}" != "${mygccVers}" ]; then
-		echo "  gcc $lVers detected, will use it"
-		return 0
-	else 
-		echo "  gcc $gVers detected"
-		echo "  in ${theDIRS}"
-	fi
-	echo "  Do you want to use it"
-	echo "  Enter 'n' for 'no'"
-	echo "         Or"
-	echo "  Enter 'y' to continue..."
-	echo -n "  Type letter and hit <RETURN>: "
-	read choose
-	case $choose in
-	n|N)
-	CG_PREFIX=""
-	break
-   	;;
-   	y|Y)
-	echo "  Fixing gcc…"
-	MakeSymLinks
-	echo "${gVers}" > "${filesDIR}"/.gccVersion
-	return
-	;;
-	*)
-	echob "  Good $hours"
-	exit 1
-	esac	
-else
-	sleep 1
-	echob "  ...Not Found"	
-fi	
-done
-installGCC
+    export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
+    gccDIRS="/usr/local /opt/local $WORKDIR/src/CloverTools" # user has 3 choices for gcc install
+    echob "Entering function checkGCC:"
+    echo "  Checking gcc $gccVers INSTALL status"
+    for theDIRS in $gccDIRS; do # check install dirs for gcc
+        CG_PREFIX="${theDIRS}" #else
+        echo "  Checking ${theDIRS}"
+        if [ -x "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
+            local lVers=$("${CG_PREFIX}/bin/x86_64-linux-gnu-gcc" -dumpversion)
+            export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
+            echo "  gcc $lVers detected in ${theDIRS}"
+            read -p "  Do you want to use it [y/n] " choose
+            case $choose in
+                n|N)
+                     CG_PREFIX=""
+                     break
+                     ;;
+                y|Y)
+                     echo "  Fixing gcc…"
+                     MakeSymLinks
+                     echo "${lVers}" > "${filesDIR}"/.gccVersion
+                     return
+                     ;;
+                *)
+                   echob "  Good $hours"
+                   exit 1
+            esac
+        else
+            sleep 1
+            echob "  ...Not Found"
+        fi
+    done
+    installGCC
 }
 
 function installGCC(){
@@ -594,16 +581,14 @@ fi
 # setup gcc
 gVers=""
 if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
-	export CG_PREFIX=$(cat "${filesDIR}"/.CloverTools) # get PAth
-	if [ -f "${CG_PREFIX}"/bin/i686-linux-gnu-gcc ] || [ -f "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]; then
-		gVers=$("${CG_PREFIX}/bin/i686-linux-gnu-gcc" --version | grep '(GCC)')
-		gVers="${gVers:25:5}"
+	export CG_PREFIX=$(cat "${filesDIR}"/.CloverTools) # get Path
+	if [[ -x "${CG_PREFIX}"/bin/x86_64-linux-gnu-gcc ]]; then
+		gVers=$("${CG_PREFIX}/bin/x86_64-linux-gnu-gcc" -dumpversion)
 	fi
-fi		
-if [ "${gVers}" == "" ];  then
-	checkGCC
 fi
-echo "${gccVers}" > "${filesDIR}"/.gccVersion
+
+[[ "${gVers}" == "" ]] && checkGCC
+
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC47
 export TOOLCHAIN=$(cat "${filesDIR}"/.CloverTools)
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
