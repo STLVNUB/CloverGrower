@@ -444,8 +444,7 @@ function makePKG(){
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ] && [ "$target" != "64" ]; then # don't build IF pkg already here
 		if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
-			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | grep 'Clover revision:')
-			theBuiltVersion="${theBuiltVersion:17:4}" # changed 3 to 4, DOH into 1000's now
+			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | sed -n 's/^Clover revision: *//p')
 			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
 				built="Yes"
 			else
