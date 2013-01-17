@@ -421,12 +421,12 @@ function makePKG(){
 			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
 				built="Yes"
 			else
-				built="No"
+				built="No "
 				cloverUpdate="Yes"
 			fi
 			echob "*********Clover Package STATS***********"
-			echob "*       remote revision at ${CloverREV}         *" 
-			echob "*       local  revision at ${versionToBuild}         *"
+			echob "*       remote revision at ${CloverREV}        *" 
+			echob "*       local  revision at ${versionToBuild}        *"
 			echob "*       Package Built   =  $built         *"
 			echob "****************************************"
 			if [ "$built" == "Yes" ]; then
