@@ -12,8 +12,10 @@ function lc() {
 }
 
 function get_hours() {
-	starth=$(date "+%H")
-	if [[ $starth -ge 04 && $starth -le 12 ]]; then
+	starth=$(date "+%k")
+	# message Afternoon is longest len so others must have same len also
+    # return a string with a length of 9
+	if [[ $starth -ge 4	   && $starth -le 12 ]]; then
 		hours="Morning"
 	elif [[ $starth -ge 12 && $starth -le 17 ]]; then
 		hours="Afternoon"
@@ -22,7 +24,7 @@ function get_hours() {
 	else
 		hours="Night"
 	fi
-    printf "%-9s" $hours
+	printf "%-9s" $hours # 9 chars long
 }
 
 # Simple check return value function
