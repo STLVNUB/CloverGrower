@@ -141,6 +141,26 @@ function getSOURCEFILE() {
         echo  "    svn co $2"
         svn co "$2" "$1"
         getREVISIONS${1} Initial # flag to write initial revision
+        if [[ "$1" == "edk2" ]]; then
+            cd "${edk2DIR}"
+
+            # Remove old edk2 config files
+            rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+
+            # Create new default edk2 files in edk2/Conf
+            ./edksetup.sh >/dev/null
+
+            # Patch edk2/Conf/tools_def.txt for GCC
+            patch --quiet -d "${edk2DIR}/Conf" < ${filesDIR}/tools_def.patch
+            checkit "    Patching edk2/Conf/tools_def.txt"
+
+			echob "    Make edk2 BaseTools.."
+            make -C BaseTools &>/dev/null
+        else 
+           	echob "    Copy Files/HFSPlus Clover/HFSPlus"
+        	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
+    	fi
+        echo
         return 1
     fi
 
@@ -175,43 +195,12 @@ function getSOURCE() {
     if [[ "${cloverUpdate}" == "Yes" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
-        getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-        local buildBaseTools=$?
-
-        # Is edk2 need to be update
-        if [[ "$buildBaseTools" -eq 1 ]]; then
-            cd "${edk2DIR}"
-
-            # Remove old edk2 config files
-            rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
-
-            # Create new default edk2 files in edk2/Conf
-            ./edksetup.sh >/dev/null
-
-            # Patch edk2/Conf/tools_def.txt for GCC
-            patch --quiet -d "${edk2DIR}/Conf" < ${filesDIR}/tools_def.patch
-            checkit "    Patching edk2/Conf/tools_def.txt"
-
-            make -C BaseTools clean &>/dev/null
-            # Basetool will be build automatically when Clover will be build
-        fi
-        echo
+	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
     fi
 
     # Get Clover source
     cd "${edk2DIR}"
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
-    buildClover=$?
-
-    # Is Clover need to be update
-    if [[ "$buildClover" -eq 1 ]]; then
-        echob "    Clover updated, so rm the build folder"
-        rm -Rf "${buildDIR}"/*
-
-        echob "    Copy Files/HFSPlus Clover/HFSPlus"
-        cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
-    fi
-
     echo
 }
 
@@ -263,7 +252,7 @@ function DoLinks(){
     TARGET="$2"
     if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
         mkdir -p "${TOOLCHAIN}/${ARCH}"
-        echo "  Fixing your $gccVers Symlinks"
+        echo "  Fixing your $gccVers ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
             ln -sf "${CG_PREFIX}"/bin/$TARGET-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
         done
@@ -403,7 +392,7 @@ autoBuild(){
 function makePKG(){
 	versionToBuild=""
 	cloverUpdate="No"
-	clear;echo
+	echo
 	echob "********************************************"
 	echob "*             Good $hours               *"
 	echob "*      Welcome To CloverGrower V$myV       *"
