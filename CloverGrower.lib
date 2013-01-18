@@ -14,6 +14,8 @@ function lc() {
 function get_hours() {
 	starth=$(date "+%H")
 	# message Afternoon is longest len so others must have same len also
+	# this is for echob use of $hours i.e in 	
+	# echob "*             Good $hours               *"
 	if [[ $starth -ge 04 && $starth -le 12 ]]; then
 		hours="Morning  "
 	elif [[ $starth -ge 12 && $starth -le 17 ]]; then
