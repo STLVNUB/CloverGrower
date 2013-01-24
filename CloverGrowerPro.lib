@@ -22,11 +22,12 @@ function prompt() {
 function storeConfig() {
     local variable="$1"
     local value="$2"
-    [[ -z "$CLOVER_GROWER_CONF" ]] && echob "variable CLOVER_GROWER_CONF not defined !" && exit 1
-    egrep -v "^$variable=" "$CLOVER_GROWER_CONF" > "$CLOVER_GROWER_CONF".new
-    echo "$variable='$value'" >> "$CLOVER_GROWER_CONF".new
-    cat "$CLOVER_GROWER_CONF".new | sort > "$CLOVER_GROWER_CONF" && \
-     rm "$CLOVER_GROWER_CONF".new
+    [[ -z "$CLOVER_GROWER_PRO_CONF" ]] && \
+     echob "variable CLOVER_GROWER_PRO_CONF not defined !" && exit 1
+    egrep -v "^$variable=" "$CLOVER_GROWER_PRO_CONF" > "$CLOVER_GROWER_PRO_CONF".new
+    echo "$variable='$value'" >> "$CLOVER_GROWER_PRO_CONF".new
+    cat "$CLOVER_GROWER_PRO_CONF".new | sort > "$CLOVER_GROWER_PRO_CONF" && \
+     rm "$CLOVER_GROWER_PRO_CONF".new
 }
 
 function get_hours() {
