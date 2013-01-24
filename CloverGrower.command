@@ -29,12 +29,12 @@ hours=$(get_hours)
 
 if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
-	echob "      Xcode command line Tools from Apple"
-	echob "      NOT FOUND!!!"
+	echob "      Xcode Command Line Tools from Apple"
+	echob "      Not found!"
 	echob "      CloverGrower.command needs it";echo
 	echob "      Going To Apple Developer Site"
-	echob "      Download & Install XCode then re-run CloverGrower.command"
-	open "http://www.google.com.au/url?sa=t&rct=j&q=xcode%20command%20line%20tools&source=web&cd=2&ved=0CCkQFjAB&url=http%3A%2F%2Fdeveloper.apple.com%2Fxcode%2F&ei=RVNBUM7OGNGViQe2soCoDQ&usg=AFQjCNHQA6GfwnaQsSz6TRPjvUEhcQ-ysw"
+	echob "      Download & Install XCode Command Line Tools then re-run CloverGrower.command"
+	open "https://developer.apple.com/downloads/"
 	wait
 	echob "Good $hours"
 	tput bel
