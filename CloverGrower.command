@@ -33,10 +33,11 @@ if [ ! -f /usr/bin/gcc ]; then
 	echob "      NOT FOUND!!!!"
 	echob "      CloverGrower.command needs it";echo
 	echob "      Going To Apple Developer Site"
-	echob "      Download & Install XCode Command Line Tools then re-run CloverGrower.command"
+	echob "      Download & Install XCode Command Line Tools"
+	echob "      then re-run CloverGrower.command"
 	open "https://developer.apple.com/downloads/"
 	wait
-	echob "Good $hours"
+	echob "Good $hours."
 	tput bel
 	exit 1
 fi
