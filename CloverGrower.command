@@ -217,7 +217,7 @@ function cleanRUN(){
 	echo "	Starting $buildMode Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	if [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 ia32'
+		archBits='x64 ia32 mc'
 		cd "${CloverDIR}"
 		for az in $archBits ; do
 			echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
@@ -379,7 +379,7 @@ cleanRUN "$theARCHS"
 
 autoBuild(){
 	
-	if [ "$built" == "No" ]; then
+	if [ "$built" == "No " ]; then
 		buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 		cleanMode=""
 		targetBits="$1"
@@ -451,9 +451,9 @@ function makePKG(){
         getSOURCE
     fi
 
-    # If not already built force Clover build
-    if [[ "$built" == "No" ]]; then
-        echob "No build already done. Forcing Clover build"
+    # If not already built, Build it
+    if [[ "$built" == "No " ]]; then
+        echob "Not built. Building..."
         buildClover=1
     fi
 
@@ -573,6 +573,6 @@ fi
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC47
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
-built="No"
+built="No "
 makePKG "$target" # do complete build
 echob "Good $hours."
