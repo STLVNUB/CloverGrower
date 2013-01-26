@@ -32,6 +32,7 @@ MAKE_PACKAGE=1
 CLOVER_REMOTE_REV=
 CLOVER_LOCAL_REV=
 FORCE_REVISION=
+FW_VBIOS_PATH=
 
 # Usage: usage
 # Print the usage.
@@ -89,15 +90,15 @@ function checkConfig() {
         local default_toolchain="${TOOLCHAIN:-${CLOVER_GROWER_PRO_DIR}/toolchain}"
         TOOLCHAIN=$(prompt "TOOCHAIN directory" "$default_toolchain")
         storeConfig 'TOOLCHAIN' "$TOOLCHAIN"
-		echo
-	fi
+        echo
+    fi
 
     if [[ -z "$EDK2DIR" || -n "$DO_SETUP" ]];then
         echo "Where to put the edk2 source files ?"
         local default_edk2dir="${EDK2DIR:-${CLOVER_GROWER_PRO_DIR}/edk2}"
         EDK2DIR=$(prompt "edk2 directory" "$default_edk2dir")
         storeConfig 'EDK2DIR' "$EDK2DIR"
-		echo
+        echo
     fi
 
     if [[ -z "$CLOVERSVNURL" || -n "$DO_SETUP" ]]; then
@@ -116,8 +117,18 @@ function checkConfig() {
             CLOVERSVNURL='svn://svn.code.sf.net/p/cloverefiboot/code'
         fi
         storeConfig 'CLOVERSVNURL' "$CLOVERSVNURL"
-		echo
-	fi
+        echo
+    fi
+
+    if [[ -z "$FW_VBIOS_PATCH" || -n "$DO_SETUP" ]];then
+        local default_fw_vbios_patch='No'
+        [[ "$FW_VBIOS_PATCH" -ne 0 ]] && default_fw_vbios_patch='Yes'
+        local answer=$(prompt "Activate firmare VBios Patch by default" "$default_fw_vbios_patch")
+        FW_VBIOS_PATCH=0
+        [[ $(lc "$answer") == y* ]] && FW_VBIOS_PATCH=1
+        storeConfig 'FW_VBIOS_PATCH' "$FW_VBIOS_PATCH"
+        echo
+    fi
 }
 
 function checkUpdate() {
@@ -395,6 +406,12 @@ function cleanRUN(){
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
 
+    if [[ "$FW_VBIOS_PATCH" -ne 0 ]]; then
+        # Patch CloverX64.dsc
+        [[ -f "$CloverDIR/CloverX64.dsc.orig" ]] && mv "$CloverDIR/CloverX64.dsc.orig" "$CloverDIR/CloverX64.dsc"
+        sed -i'.orig' -e 's/# *\(GCC:\*_\*_\*_CC_FLAGS.*-DCLOVER_VBIOS_PATCH_IN_CLOVEREFI.*\)/\1/' "$CloverDIR/CloverX64.dsc"
+    fi
+
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
     local archs=$(lc $archs)
@@ -404,6 +421,10 @@ function cleanRUN(){
         ./ebuild.sh -gcc${mygccVers} -$arch -"$style"
         checkit "Clover$arch $style"
     done
+
+    # Restore CloverX64.dsc
+    [[ -f "$CloverDIR/CloverX64.dsc.orig" ]] && mv "$CloverDIR/CloverX64.dsc.orig" "$CloverDIR/CloverX64.dsc"
+
     echo
 }
 
