@@ -17,15 +17,15 @@ function get_hours() {
 	# this is for echob use of $hours i.e in 	
 	# echob "*             Good $hours               *"
 	if [[ $starth -ge 04 && $starth -le 12 ]]; then
-		hours="Morning  "
+		hours="Morning.  "
 	elif [[ $starth -ge 12 && $starth -le 17 ]]; then
-		hours="Afternoon"
+		hours="Afternoon."
 	elif [[ $starth -ge 18 && $starth -le 21 ]]; then
-		hours="Evening  "
+		hours="Evening.  "
 	else
-		hours="Night    "
+		hours="Night.    "
 	fi
-    printf "%-9s" $hours
+    printf "%-10s" $hours
 }
 
 # Simple check return value function

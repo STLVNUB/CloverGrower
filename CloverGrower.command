@@ -37,7 +37,7 @@ if [ ! -f /usr/bin/gcc ]; then
 	echob "      then re-run CloverGrower.command"
 	open "https://developer.apple.com/downloads/"
 	wait
-	echob "Good $hours."
+	echob "Good $hours"
 	tput bel
 	exit 1
 fi
@@ -395,7 +395,7 @@ function makePKG(){
 	cloverUpdate="No"
 	echo
 	echob "********************************************"
-	echob "*             Good $hours               *"
+	echob "*             Good $hours              *"
 	echob "*      Welcome To CloverGrower V$myV       *"
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
@@ -575,4 +575,4 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-echob "Good $hours."
+echob "Good $hours"
