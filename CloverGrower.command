@@ -414,11 +414,11 @@ function makePKG(){
 				built="No "
 				cloverUpdate="Yes"
 			fi
-			echob "*********Clover Package STATS***********"
-			echob "*       remote revision at ${CloverREV}        *" 
-			echob "*       local  revision at ${versionToBuild}        *"
-			echob "*       Package Built   =  $built         *"
-			echob "****************************************"
+			echob "*********Clover Build STATS***********"
+			echob "*      remote revision at ${CloverREV}       *" 
+			echob "*      local  revision at ${versionToBuild}       *"
+			echob "*      Package Built   =  $built        *"
+			echob "**************************************"
 			if [ "$built" == "Yes" ]; then
 				echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made!!"
 				return
@@ -435,11 +435,11 @@ function makePKG(){
             echob "Clover Update Detected !"
             cloverUpdate="Yes"
             versionToBuild="${CloverREV}"
-			echob "*********Clover Package STATS***********"
-			echob "*       local  revision at ${cloverLVers}         *"
-			echob "*       remote revision at ${CloverREV}         *"
-			echob "*       Package Built   =  $built         *"
-			echob "****************************************"
+			echob "*********Clover Build STATS***********"
+			echob "*      local  revision at ${cloverLVers}       *"
+			echob "*      remote revision at ${CloverREV}       *"
+			echob "*      Package Built   =  $built        *"
+			echob "**************************************"
         else
             echob "No Clover Update found. Current revision: ${cloverLVers}"
         fi
@@ -454,10 +454,6 @@ function makePKG(){
     # If not already built, Build it
     if [[ "$built" == "No " ]]; then
         echob "Not built. Building..."
-        buildClover=1
-    fi
-
-    if [[ "$buildClover" -eq 1 ]]; then
         versionToBuild="${CloverREV}"
         if [ "${cloverUpdate}" == "Yes" ]; then
             echob "svn changes for $CloverREV"
