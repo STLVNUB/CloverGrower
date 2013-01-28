@@ -422,33 +422,28 @@ function makePKG(){
 		if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             echob "Clover Update Detected !"
             cloverUpdate="Yes"
-            versionToBuild="${CloverREV}"
 			echob "*********Clover Build STATS***********"
 			echob "*      local  revision at ${cloverLVers}       *"
 			echob "*      remote revision at ${CloverREV}       *"
 			echob "*      Package Built   =  $built        *"
 			echob "**************************************"
-        else
+   			echob "svn changes for $CloverREV"
+			cd "${CloverDIR}"
+       		changesSVN=$(svn log -v -r "$CloverREV")
+       		echob "$changesSVN"
+       		echob "Press any key…"
+       		tput bel
+       		read
+       		cd ..
+    	else
             echob "No Clover Update found. Current revision: ${cloverLVers}"
         fi
     fi
 
     echo
-	if [[ "${cloverUpdate}" == "Yes"  || ! -d "${srcDIR}" ]]; then
-        echob "Getting SVN Source, Hang ten…"
-        getSOURCE
-    fi    
-     versionToBuild="${CloverREV}"
-     if [ "${cloverUpdate}" == "Yes" ]; then
-     	echob "svn changes for $CloverREV"
-		cd "${CloverDIR}"
-        changesSVN=$(svn log -v -r "$CloverREV")
-        echob "$changesSVN"
-        echob "Press any key…"
-        tput bel
-        read
-        cd ..
-    fi    
+    echob "Getting SVN Source, Hang ten…"
+    getSOURCE
+    versionToBuild="${CloverREV}"
     echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
     sleep 3
     autoBuild "$1"
