@@ -65,11 +65,11 @@ filesDIR="${WORKDIR}"/Files
 UserDIR="${WORKDIR}"/User/etc
 etcDIR="${WORKDIR}"/Files/etc
 srcDIR="${WORKDIR}"/src
-edk2DIR="${WORKDIR}"/src/edk2
-CloverDIR="${WORKDIR}"/src/edk2/Clover
-rEFItDIR="${WORKDIR}"/src/edk2/Clover/rEFIt_UEFI
-buildDIR="${WORKDIR}"/src/edk2/Build
-cloverPKGDIR="${WORKDIR}"/src/edk2/Clover/CloverPackage
+edk2DIR="${srcDIR}"/edk2
+CloverDIR="${edk2DIR}"/Clover
+rEFItDIR="${CloverDIR}"/rEFIt_UEFI
+buildDIR="${edk2DIR}"/Build
+cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
 
@@ -112,38 +112,37 @@ esac
 function getREVISIONSClover(){
     # Clover
     export CloverREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code)
-    if [ "$1" == "Initial" ]; then
-        echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
-    fi
     # rEFIt
     export rEFItREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI)
-    export cloverVers="${CloverREV}:${rEFItREV}"
+    export cloverVers="${CloverREV}:${rEFItREV}" # probably don't need these two, older versions < 3.8 did
 }
 
 # set up Revisions
 function getREVISIONSedk2(){
 	# EDK2
 	export edk2REV=$(getSvnRevision http://edk2.svn.sourceforge.net/svnroot/edk2)
-    getSvnRevision "$edk2DIR" > "${edk2DIR}"/Lvers.txt # update edk2 local revision
+    echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update edk2 local revision
 }
 
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
-# return code:
-#     0: no update found
-#     1: update found
 function getSOURCEFILE() {
     if [ ! -d "$1" ]; then
         echob "    ERROR:"
         echo  "        Local $1 Folder Not Found.."
         echob "        Making Local ${1} Folder..."
         mkdir "$1"
-        echob "    Checking out Remote $1 revision "$(getSvnRevision "$2")
+        checkoutRevision=$(getSvnRevision "$2")
+        echob "    Checking out Remote $1 revision $checkoutRevision"
         echo  "    svn co $2"
-        svn co "$2" "$1"
-        getREVISIONS${1} Initial # flag to write initial revision
+        svn co "$2" "$1" &>/dev/null &
+        echob "    Waiting for svn"
+        wait
+        echob "    svn co $1, done"
+        tput bel
+        echo "${checkoutRevision}" > ${1}/Lvers.txt	# make initial revision txt file
         if [[ "$1" == "edk2" ]]; then
-            cd "${edk2DIR}"
+        	cd "${edk2DIR}"
 
             # Remove old edk2 config files
             rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
@@ -162,21 +161,19 @@ function getSOURCEFILE() {
         	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     	fi
         echo
-        return 1
-    fi
-
-    local localRev=$(getSvnRevision "$1")
-    local remoteRev=$(getSvnRevision "$2")
-    if [[ "${localRev}" == "${remoteRev}" ]]; then
-        echob "    Checked $1 SVN, 'No updates were found...'"
-        return 0
-    fi
-    echob "    Checked $1 SVN, 'Updates found...'"
-    echob "    Auto Updating $1 From $localRev to $remoteRev ..."
-    tput bel
-    (cd "$1" && svn up >/dev/null)
-    checkit "    Svn up $1" "$2"
-    return 1
+    else
+    	#local localRev=$(getSvnRevision "$1")
+    	#local remoteRev=$(getSvnRevision "$2")
+    	#if [[ "${localRev}" == "${remoteRev}" ]]; then
+        	#echob "    Checked $1 SVN, 'No updates were found...'"
+        	#return
+    	#fi
+    	#echob "    Checked $1 SVN, 'Updates found...'"
+    	#echob "    Auto Updating $1 From $localRev to $remoteRev ..."
+    	#tput bel
+    	(cd "$1" && svn up >/dev/null)
+    	checkit "    Svn up $1" "$2"
+    fi	
 }
 
 # sets up svn sources
@@ -185,15 +182,9 @@ function getSOURCE() {
         echob "  Make src Folder.."
         mkdir "${srcDIR}"
     fi
-    if [ ! -d "${edk2DIR}"/Build/CloverX64 ] && [ ! -d "${edk2DIR}"/Build/CloverIA32 ]; then
-        buildMode=">CleanAll< Build  "
-    fi
-    if [ -d "${edk2DIR}"/Build/CloverX64 ] || [  -d "${edk2DIR}"/Build/CloverIA32 ]; then
-        buildMode=">>>Clean<<< Build "
-    fi
-
+   
     # Don't update edk2 if no Clover updates
-    if [[ "${cloverUpdate}" == "Yes" ]]; then
+    if [[ "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
@@ -214,7 +205,7 @@ function cleanRUN(){
 	theBuilder=$(echo "$builder" | awk '{print toupper($0)}')
 	theStyle=$(echo "$style" | awk '{print toupper($0)}')
 	clear
-	echo "	Starting $buildMode Process: $(date -j +%T)"
+	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	if [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 ia32 mc'
@@ -362,7 +353,6 @@ fi
 function Main(){
 STARTD=$(date -j "+%d-%h-%Y")
 theARCHS="$1"
-buildMode=">>>>New<<<< Build "
 edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 echo $(date)
 cloverLocal=${cloverLocal:=''}
@@ -427,9 +417,7 @@ function makePKG(){
 	fi	
 
     echo
-	if [[ ! -d "${CloverDIR}" ]]; then
-		cloverUpdate="Yes"
-	else
+	if [[ -d "${CloverDIR}" ]]; then
 		cloverLVers=$(getSvnRevision "${CloverDIR}")
 		if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             echob "Clover Update Detected !"
@@ -446,32 +434,26 @@ function makePKG(){
     fi
 
     echo
-	if [[ "${cloverUpdate}" == "Yes" ]]; then
+	if [[ "${cloverUpdate}" == "Yes"  || ! -d "${srcDIR}" ]]; then
         echob "Getting SVN Source, Hang ten…"
         getSOURCE
-    fi
-
-    # If not already built, Build it
-    if [[ "$built" == "No " ]]; then
-        echob "Not built. Building..."
-        versionToBuild="${CloverREV}"
-        if [ "${cloverUpdate}" == "Yes" ]; then
-            echob "svn changes for $CloverREV"
-            cd "${CloverDIR}"
-            changesSVN=$(svn log -v -r "$CloverREV")
-            echob "$changesSVN"
-            echob "Press any key…"
-            tput bel
-            read
-            cd ..
-        fi
-        echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
-        sleep 3
-        autoBuild "$1"
+    fi    
+     versionToBuild="${CloverREV}"
+     if [ "${cloverUpdate}" == "Yes" ]; then
+     	echob "svn changes for $CloverREV"
+		cd "${CloverDIR}"
+        changesSVN=$(svn log -v -r "$CloverREV")
+        echob "$changesSVN"
+        echob "Press any key…"
         tput bel
-    fi
-
-	if [ "$flagTime" == "Yes" ]; then
+        read
+        cd ..
+    fi    
+    echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
+    sleep 3
+    autoBuild "$1"
+    tput bel
+    if [ "$flagTime" == "Yes" ]; then
 		STOPBM=$(date -u "+%s")
 		RUNTIMEMB=$(expr $STOPBM - $STARTM)
 		if (($RUNTIMEMB>59)); then
