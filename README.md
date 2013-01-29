@@ -26,4 +26,5 @@ CloverGrower will update any source files from edk2 or Clover and build you a pa
 
 
 CloverGrower with JrCs enhancements at https://github.com/JrCs/CloverGrower.git
-This is more suited to the Developer/AdvancedUser
+This is more suited to the Developer/AdvancedUser and should probably be named
+CloverGrowerPro
