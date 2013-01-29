@@ -23,7 +23,7 @@ fi
 
 # don't use -e
 set -u
-
+user=$(id -un)
 theBoss=$(id -ur)
 hours=$(get_hours)
 
@@ -37,7 +37,7 @@ if [ ! -f /usr/bin/gcc ]; then
 	echob "      then re-run CloverGrower.command"
 	open "https://developer.apple.com/downloads/"
 	wait
-	echob "Good $hours"
+	echob "Good $hours $user"
 	tput bel
 	exit 1
 fi
@@ -162,15 +162,6 @@ function getSOURCEFILE() {
     	fi
         echo
     else
-    	#local localRev=$(getSvnRevision "$1")
-    	#local remoteRev=$(getSvnRevision "$2")
-    	#if [[ "${localRev}" == "${remoteRev}" ]]; then
-        	#echob "    Checked $1 SVN, 'No updates were found...'"
-        	#return
-    	#fi
-    	#echob "    Checked $1 SVN, 'Updates found...'"
-    	#echob "    Auto Updating $1 From $localRev to $remoteRev ..."
-    	#tput bel
     	(cd "$1" && svn up >/dev/null)
     	checkit "    Svn up $1" "$2"
     fi	
@@ -279,7 +270,7 @@ function checkGCC(){
                      return
                      ;;
                 *)
-                   echob "  Good $hours"
+                   echob "  Good $hours $user"
                    exit 1
             esac
         else
@@ -390,7 +381,7 @@ function makePKG(){
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************";echo
-	echob "running '$(basename $CMD)' on '$rootSystem'";echo
+	echob "$user running '$(basename $CMD)' on '$rootSystem'";echo
 	echob "Work Folder: $WORKDIR"
 	echob "Available  : ${workSpaceAvail} MB"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
@@ -407,12 +398,13 @@ function makePKG(){
 			echob "*********Clover Build STATS***********"
 			echob "*      remote revision at ${CloverREV}       *" 
 			echob "*      local  revision at ${versionToBuild}       *"
+			if [ "$built" == "Yes" ]; then
+				echob "* Clover_v2_rL${versionToBuild}.pkg ALREADY Made! *"
+				echob "**************************************"
+				return
+			fi
 			echob "*      Package Built   =  $built        *"
 			echob "**************************************"
-			if [ "$built" == "Yes" ]; then
-				echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made!!"
-				return
-			fi	
 		fi
 	fi	
 
@@ -548,4 +540,4 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-echob "Good $hours"
+echob "Good $hours $user" 
