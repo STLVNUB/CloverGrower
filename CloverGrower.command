@@ -199,7 +199,7 @@ function cleanRUN(){
 	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	if [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 ia32 mc'
+		archBits='x64 ia32'
 		cd "${CloverDIR}"
 		for az in $archBits ; do
 			echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
