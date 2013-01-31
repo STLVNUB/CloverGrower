@@ -25,6 +25,9 @@ On subsequent uses you only need to open terminal and type "clover"
 CloverGrower will update any source files from edk2 or Clover and build you a package.
 
 
-CloverGrower with JrCs enhancements at https://github.com/JrCs/CloverGrowerPro.git
+CloverGrowerPro
+
+
 This is more suited to the Developer/AdvancedUser.
+CloverGrower with JrCs enhancements at https://github.com/JrCs/CloverGrowerPro.git
 
