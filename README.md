@@ -29,5 +29,5 @@ CloverGrowerPro
 ===============
 
 This is more suited to the Developer/AdvancedUser.
-CloverGrower with JrCs enhancements at https://github.com/JrCs/CloverGrowerPro.git
+CloverGrowerPro with JrCs enhancements at https://github.com/JrCs/CloverGrowerPro.git
 
