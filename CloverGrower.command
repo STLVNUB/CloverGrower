@@ -17,7 +17,7 @@ declare -r CLOVER_GROWER_DIR=${CLOVER_GROWER_SCRIPT%/*}
 source "$CLOVER_GROWER_DIR/CloverGrower.lib"
 
 target="64"
-if [ "$1" == "" ]; then
+if [ "$1" == "" ]; then 
 	target="X64/IA32"
 fi
 
@@ -136,9 +136,9 @@ function getSOURCEFILE() {
         echob "    Checking out Remote $1 revision $checkoutRevision"
         echo  "    svn co $2"
         svn co "$2" "$1" &>/dev/null &
-        echob "    Waiting for svn"
+        echob "    Waiting for svn to finish"
         wait
-        echob "    svn co $1, done"
+        echob "    svn co $1, done, continuing"
         tput bel
         echo "${checkoutRevision}" > ${1}/Lvers.txt	# make initial revision txt file
         if [[ "$1" == "edk2" ]]; then
@@ -189,7 +189,6 @@ function getSOURCE() {
 
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
-	echob "Entering function cleanRUN:"
 	builder=gcc
 	bits=$1
 	theBits=$(echo "$bits" | awk '{print toupper($0)}')
@@ -204,7 +203,6 @@ function cleanRUN(){
 		for az in $archBits ; do
 			echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 			./ebuild.sh -gcc${mygccVers} -$az -"$style" 
-			wait
 			checkit "Clover$az $theStyle"
 		done
 		cd "${rEFItDIR}"
@@ -218,7 +216,6 @@ function cleanRUN(){
 		./ebuild.sh -gcc${mygccVers} -x64 -"$style" 
 		checkit "CloverX64 $theStyle"
 	fi
-	echob "Exiting function cleanRUN:";echo
 }
 
 # sets up 'new' sysmlinks for gcc47
@@ -431,12 +428,15 @@ function makePKG(){
             echob "No Clover Update found. Current revision: ${cloverLVers}"
         fi
     fi
-
-    echo
-    echob "Getting SVN Source, Hang ten…"
-    getSOURCE
-    versionToBuild="${CloverREV}"
-    echob "Ready to build Clover $CloverREV, Using Gcc $gccVers"
+    if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then
+    	echo
+    	echob "Getting SVN Source, Hang ten…"
+    	getSOURCE
+   	 	versionToBuild="${CloverREV}"
+   	else
+   		versionToBuild="${cloverLVers}" 	
+   	fi 	
+    echob "Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 3
     autoBuild "$1"
     tput bel
@@ -460,51 +460,47 @@ function makePKG(){
 		echob "Clover revision $cloverVers Compile process took $TTIMEM to complete" 
 	fi
 	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
-	if [ "$target" == "X64/IA32" ]; then
-		if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ]; then # make pkg if not there
-			echob "Type 'm' To make Clover_v2_rL${versionToBuild}.pkg..."
-			read choose
-			case $choose in
-			m|M)
-			if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
-				rm -rf "${CloverDIR}"/CloverPackage/sym
-			fi
-			if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
-				if [ -f "${UserDIR}"/rc.local ]; then
-					echob "copy User rc.local To Package"
-					cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-				fi
-					
-				if [ -f "${UserDIR}"/rc.shutdown.local ]; then
-					echob "copy User rc.shutdown.local To Package"
-					cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-				fi	
-			fi	
-			cd "${CloverDIR}"/CloverPackage
-			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
-			./makepkg "No"
-			wait
-			echob "mkdir buildPKG/${versionToBuild}."
-			mkdir "${builtPKGDIR}"/"${versionToBuild}"
-			echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
-			cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
-			echob "rm -rf src/edk2/Clover/CloverPackage/sym."
+	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ]; then # make pkg if not there
+		echob "Type 'm' To make Clover_v2_rL${versionToBuild}.pkg..."
+		read choose
+		case $choose in
+		m|M)
+		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
-			echob "rm -rf src/edk2/Build."
-			rm -rf "${buildDIR}"
-			echob "open builtPKG/${versionToBuild}."
-			open "${builtPKGDIR}"/"${versionToBuild}"
-			tput bel
-			;;
-			*)
-			esac
-		else
-			echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made !"
 		fi
+		if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
+			if [ -f "${UserDIR}"/rc.local ]; then
+				echob "copy User rc.local To Package"
+				cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+			fi
+				
+			if [ -f "${UserDIR}"/rc.shutdown.local ]; then
+				echob "copy User rc.shutdown.local To Package"
+				cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+			fi	
+		fi	
+		cd "${CloverDIR}"/CloverPackage
+		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
+		./makepkg "No"
+		wait
+		echob "mkdir buildPKG/${versionToBuild}."
+		mkdir "${builtPKGDIR}"/"${versionToBuild}"
+		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
+		cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
+		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
+		rm -rf "${CloverDIR}"/CloverPackage/sym
+		echob "rm -rf src/edk2/Build."
+		rm -rf "${buildDIR}"
+		echob "open builtPKG/${versionToBuild}."
+		open "${builtPKGDIR}"/"${versionToBuild}"
+		tput bel
+		;;
+		*)
+		esac
 	else
-		echob "Skipping pkg creation, 64bit Build Only"
-		open "${buildDIR}"/Clover/${theStyle}_GCC${mygccVers}
+		echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made !"
 	fi
+	
 }
 
 # Check versionBuilt
