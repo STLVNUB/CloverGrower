@@ -143,7 +143,6 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 1
             ;;
-        # Explicitly ignore non-option arguments, for compatibility.
     esac
 done
 
