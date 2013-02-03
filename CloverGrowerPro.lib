@@ -77,6 +77,41 @@ function checkit(){
 	fi
 }
 
+# Print help option
+printOptionHelp () {
+    if [[ x$print_option_help_wc = x ]]; then
+        if wc -L  </dev/null > /dev/null 2>&1; then
+            print_option_help_wc=-L
+        elif wc -m  </dev/null > /dev/null 2>&1; then
+            print_option_help_wc=-m
+        else
+            print_option_help_wc=-b
+        fi
+    fi
+    local print_option_help_lead="  $1"
+    local print_option_help_lspace="$(echo "$print_option_help_lead" | wc $print_option_help_wc)"
+    local print_option_help_fill="$((26 - print_option_help_lspace))"
+    printf "%s" "$print_option_help_lead"
+    local print_option_help_nl
+    if [[ $print_option_help_fill -le 0 ]]; then
+        print_option_help_nl=y
+        echo
+    else
+        local print_option_help_i=0;
+        while [[ $print_option_help_i -lt $print_option_help_fill ]]; do
+            printf " "
+            print_option_help_i=$((print_option_help_i+1))
+        done
+        print_option_help_nl=n
+    fi
+    local print_option_help_split="$(echo "$2" | fmt -w 50)"
+    if [[ x$print_option_help_nl = xy ]]; then
+        echo "$print_option_help_split" | awk '{ print "                          " $0; }'
+    else
+        echo "$print_option_help_split" | awk 'BEGIN { n = 0 }
+              { if (n == 1) print "                          " $0; else print $0; n = 1 ; }'
+    fi
+}
 
 # Function that return svn revision
 function getSvnRevision() {
@@ -140,25 +175,67 @@ function checkout_repository() {
 }
 
 function update_git_svn_repository() {
+    local forcerevision="$1"
+    # Check if we are on the master branch
+    local branch=$(LC_ALL=C git rev-parse --abbrev-ref HEAD)
+    if [[ "$branch" != master ]]; then
+        echo
+        echob "You're not on the 'master' branch. Can't update the repository !"
+        echob "Press any key to continue…"
+        tput bel
+        read
+        return
+    fi
     # Check if we have pending commits
     local pending=$(git diff-index --name-only HEAD)
     # Check if we have untracked files
     #local untracked=$(git ls-files :/ --exclude-standard --others)
-    #if [[ -z "$pending" && -z "$untracked" ]];then
     if [[ -z "$pending" ]];then
-        local lastrev=$(getSvnRevision "$svnremoteurl")
-        echo "Getting last history please wait ..."
-        while read -r revision sha1; do
-            ((percent=(100 * $revision)/$lastrev))
-            log=$(LC_ALL=C git log -n1 --pretty=format:'[%an] %s' $sha1)
-            printf "r%d / r%d (%d%%): %s\n" $revision $lastrev $percent "$log"
-        done < <(git svn rebase 2>/dev/null | sed -nl 's/^r\([0-9]*\) *= *\([^ ]*\).*/\1 \2/p')
+        local sha1=$(LC_ALL=C git svn find-rev r$forcerevision)
+        if [[ -z "$sha1" ]]; then
+            # Getting new history
+            local lastrev=$(getSvnRevision "$svnremoteurl")
+            if [[ "$forcerevision" -gt "$lastrev" ]]; then
+                echo
+                echob "Error revision $forcerevision doesn't exist. Last revision: $lastrev"
+                echo
+                exit 1
+            fi
+            echo "Getting history please wait ..."
+            while read -r revision sha1; do
+                ((percent=(100 * $revision)/$lastrev))
+                log=$(LC_ALL=C git log -n1 --pretty=format:'[%an] %s' $sha1)
+                printf "r%d / r%d (%d%%): %s\n" $revision $lastrev $percent "$log"
+            done < <(git svn fetch 2>/dev/null | sed -nl 's/^r\([0-9]*\) *= *\([^ ]*\).*/\1 \2/p')
+            sha1=$(LC_ALL=C git svn find-rev r$forcerevision)
+        else
+            echob "    Resetting branch to revision $forcerevision ..."
+        fi
+        LC_ALL=C git reset --hard "$sha1" >/dev/null
         echo
     else
         # git svn fetch --all | grep '^r'
         echo
-        echob "Local file(s) needs update not updating local repository"
-        echob "Press any key…"
+        echob "Local file(s) needs update:"
+        echo  "$pending"
+        echob "Not updating local repository ! Press any key to continue…"
+        tput bel
+        read
+    fi
+}
+
+function update_svn_repository() {
+    local forcerevision="$1"
+    local svn_option=
+    [[ -n "$forcerevision" ]] && svn_option="-r $forcerevision"
+    local pending=$(svn status | sed -n 's/^M *//p')
+    if [[ -z "$pending" ]];then
+        svn up $svn_option >/dev/null
+    else
+        echo
+        echob "Local file(s) needs update:"
+        echo "$pending"
+        echob "Not updating local repository ! Press any key to continue…"
         tput bel
         read
     fi
@@ -167,14 +244,15 @@ function update_git_svn_repository() {
 # Function that update an svn or git-svn local repository
 function update_repository() {
     local localdir="$1"
+    local forcerevision="${2:-}"
     local repotype='svn'
     [[ -d "${localdir}/.git" ]] && repotype='git'
     case "$repotype" in
         svn)
-             (cd "$localdir" && svn up >/dev/null)
+             (cd "$localdir" && update_svn_repository "$forcerevision")
              ;;
         git)
-             (cd "$localdir" && update_git_svn_repository)
+             (cd "$localdir" && update_git_svn_repository "$forcerevision")
              ;;
         *) echo "Unknown repository type '$repotype" >&2
            exit 1

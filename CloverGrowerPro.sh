@@ -2,6 +2,7 @@
 
 declare -r CloverGrowerVersion="5.0"
 declare -r gccVersToUse="4.7.2" # failsafe check
+declare -r self="${0##*/}"
 
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -22,11 +23,32 @@ source "$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.lib"
 source "$CLOVER_GROWER_PRO_CONF"
 
 target="X64"
-[[ -n "$1" ]] && target="X64/IA32"
 
 MAKE_PACKAGE=1
 CLOVER_REMOTE_REV=
 CLOVER_LOCAL_REV=
+FORCE_REVISION=
+
+# Usage: usage
+# Print the usage.
+usage () {
+    printf "Usage: %s [OPTION]\n" "$self"
+    echo "Compile Clover UEFI/Bios OS X Booter"
+    echo
+    printOptionHelp "-r, --revision" "compile a specific Clover revision"
+    printOptionHelp "-t, --target" "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
+    printOptionHelp "-h, --help" "print this message and exit"
+    printOptionHelp "-v, --version" "print the version information and exit"
+    echo
+    echo "Report any issue to https://github.com/JrCs/CloverGrowerPro/issues"; echo
+}
+
+function checkOptions() {
+    if [[ -n "$FORCE_REVISION" && ! "$FORCE_REVISION" =~ ^[0-9]*$ ]];then
+        echo "Invalid revision '$FORCE_REVISION': must be an integer !" >&2
+        exit 1
+    fi
+}
 
 function checkConfig() {
     if [[ -z "$CHECKUPDATEINTERVAL" ]];then
@@ -81,6 +103,51 @@ function checkUpdate() {
     fi
 }
 
+function argument() {
+    local opt=$1
+    shift
+    if [[ $# -eq 0 ]]; then
+        printf "%s: option \`%s' requires an argument\n" "$0" "$opt" 1>&2
+        exit 1
+    fi
+    echo $1
+}
+
+# Check the arguments.
+while [[ $# -gt 0 ]]; do
+    option=$1
+
+    case "$option" in
+        -h | --help)
+                     usage
+                     exit 0 ;;
+        -v | --version)
+                     echo "$self $CloverGrowerVersion"
+                     exit 0 ;;
+        -r | --revision)
+                     shift
+                     FORCE_REVISION=$(argument $option "$@"); shift;;
+        --revision=*)
+                     shift
+                     FORCE_REVISION=$(echo "$option" | sed 's/--revision=//')
+                     ;;
+        -t | --target)
+                     shift
+                     target=$(argument $option "$@"); shift;;
+        --target=*)
+                     shift
+                     target=$(echo "$option" | sed 's/--target=//')
+                     ;;
+        *)
+            printf "Unrecognized option \`%s'\n" "$option" 1>&2
+            usage
+            exit 1
+            ;;
+        # Explicitly ignore non-option arguments, for compatibility.
+    esac
+done
+
+checkOptions
 checkConfig
 checkUpdate
 
@@ -220,14 +287,21 @@ function getSOURCEFILE() {
     fi
 
     local localRev=$(getSvnRevision "$localdir")
-    if [[ "${localRev}" == "${remoteRev}" ]]; then
+    local checkoutRev=$remoteRev
+    [[ "$localdir" == */Clover ]] && checkoutRev=${FORCE_REVISION:-$remoteRev}
+
+    if [[ "${localRev}" == "${checkoutRev}" ]]; then
         echob "    Checked $name SVN, 'No updates were found...'"
         return 0
     fi
     echob "    Checked $name SVN, 'Updates found...'"
-    echob "    Auto Updating $name From $localRev to $remoteRev ..."
+    echob "    Auto Updating $name From $localRev to $checkoutRev ..."
     tput bel
-    update_repository "$localdir"
+    if [[ "$localdir" == */Clover ]]; then
+        update_repository "$localdir" "$checkoutRev"
+    else
+        update_repository "$localdir"
+    fi
     checkit "    Svn up $name" "$svnremoteurl"
     return 1
 }
@@ -362,22 +436,46 @@ function makePKG(){
     echob "Available  : ${workSpaceAvail} MB"
     echo
 
-    CLOVER_REMOTE_REV=$(getSvnRevision "$CLOVERSVNURL")
-    versionToBuild=$CLOVER_REMOTE_REV
     cloverUpdate="No"
+    versionToBuild=
 
     if [[ -d "${CloverDIR}" ]]; then
         CLOVER_LOCAL_REV=$(getSvnRevision "${CloverDIR}")
-        if [[ "${CLOVER_LOCAL_REV}" -ne "${versionToBuild}" ]]; then
-            echob "Clover Update Detected !"
-            echob  "******** Clover Package STATS **********"
-            echob "$(printf '*       local  revision at %-12s*\n' $CLOVER_LOCAL_REV)"
-            echob "$(printf '*       remote revision at %-12s*\n' $CLOVER_REMOTE_REV)"
-            echob "$(printf '*       Package Built   =  %-12s*\n' $built)"
-            echob "****************************************"
-            cloverUpdate="Yes"
-        else
-            echob "No Clover Update found. Current revision: ${CLOVER_LOCAL_REV}"
+        if [[ -d "${CloverDIR}/.git" ]]; then
+            # Check if we are on the master branch
+            local branch=$(cd "$CloverDIR" && LC_ALL=C git rev-parse --abbrev-ref HEAD)
+            if [[ "$branch" != master ]]; then
+                echob "You're not on the 'master' branch. Can't update the repository !"
+                versionToBuild=$CLOVER_LOCAL_REV
+            fi
+        fi
+        if [[ -z "$versionToBuild" ]]; then
+            if [[ -n "$FORCE_REVISION" ]]; then
+                versionToBuild=$FORCE_REVISION
+            else
+                CLOVER_REMOTE_REV=$(getSvnRevision "$CLOVERSVNURL")
+                versionToBuild=$CLOVER_REMOTE_REV
+            fi
+
+            if [[ -n "$FORCE_REVISION" ]]; then
+                versionToBuild=$FORCE_REVISION
+                if [[ "${CLOVER_LOCAL_REV}" -ne "${versionToBuild}" ]]; then
+                    echob "Forcing Clover revision $versionToBuild"
+                    cloverUpdate="Yes"
+                fi
+            else
+                if [[ "${CLOVER_LOCAL_REV}" -ne "${versionToBuild}" ]]; then
+                    echob "Clover Update Detected !"
+                    echob  "******** Clover Package STATS **********"
+                    echob "$(printf '*       local  revision at %-12s*\n' $CLOVER_LOCAL_REV)"
+                    echob "$(printf '*       remote revision at %-12s*\n' $CLOVER_REMOTE_REV)"
+                    echob "$(printf '*       Package Built   =  %-12s*\n' $built)"
+                    echob "****************************************"
+                    cloverUpdate="Yes"
+                else
+                    echob "No Clover Update found. Current revision: ${CLOVER_LOCAL_REV}"
+                fi
+            fi
         fi
     else
         CLOVER_LOCAL_REV=0
