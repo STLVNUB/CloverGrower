@@ -87,8 +87,11 @@ function getSvnRevision() {
     if [[ "$1" == *://* ]]; then
         svn_revision=$(LC_ALL=C svn info "$1" | sed -n 's/^Revision: *//p')
     else
-        svn_revision=$(cd "$1" && LC_ALL=C git svn info 2>/dev/null | sed -n 's/^Revision: *//p')
-        [[ -z "$svn_revision" ]] && svn_revision=$(LC_ALL=C svn info "$1" 2>/dev/null | sed -n 's/^Revision: *//p')
+        if [[ -d "$1/.git" ]]; then
+            svn_revision=$(cd "$1" && LC_ALL=C git svn info 2>/dev/null | sed -n 's/^Revision: *//p')
+        else
+            svn_revision=$(LC_ALL=C svn info "$1" 2>/dev/null | sed -n 's/^Revision: *//p')
+        fi
     fi
     echo $svn_revision
 }
