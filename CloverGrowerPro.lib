@@ -82,7 +82,7 @@ function checkit(){
 function getSvnRevision() {
     # Arguments:
     #    $1: location of an svn repository (directory or URL)
-	[[ $# -ne 1 ]] && echo "getSvnRevision: invalid number of arguments" >&2 && exit 1
+    [[ $# -ne 1 ]] && echo "getSvnRevision: invalid number of arguments" >&2 && exit 1
     local svn_revision
     if [[ "$1" == *://* ]]; then
         svn_revision=$(LC_ALL=C svn info "$1" | sed -n 's/^Revision: *//p')
@@ -108,10 +108,24 @@ function checkout_git_svn_repository() {
 function checkout_repository() {
     local localdir="$1"
     local svnremoteurl="$2"
-    local repotype="$3"
+    local repotype=svn
+    if [[ "$localdir" == */Clover ]]; then
+        local msg=$(printf "Do you want %s or %s local clover repository" \
+                    $(echob "svn") $(echob "git"))
+        repotype=
+        while [[ -z "$repotype" ]]; do
+            repotype=$(prompt "$msg" "svn")
+            case "$repotype" in
+                [Ss]*) repotype='svn' ;;
+                [Gg]*) repotype='git' ;;
+                    *) repotype=      ;;
+            esac
+        done
+    fi
     case "$repotype" in
-        svn)
-             (cd "$localdir" && svn co "$svnremoteurl" "$localdir")
+        svn) echo "svn co $svnremoteurl"
+             (cd "$localdir" && svn co "$svnremoteurl" "$localdir" && \
+              svn revert -R "$localdir" &>/dev/null)
              ;;
         git)
              (cd "$localdir" && checkout_git_svn_repository "$svnremoteurl")
@@ -133,7 +147,7 @@ function update_git_svn_repository() {
         echo "Getting last history please wait ..."
         while read -r revision sha1; do
             ((percent=(100 * $revision)/$lastrev))
-			log=$(LC_ALL=C git log -n1 --pretty=format:'[%an] %s' $sha1)
+            log=$(LC_ALL=C git log -n1 --pretty=format:'[%an] %s' $sha1)
             printf "r%d / r%d (%d%%): %s\n" $revision $lastrev $percent "$log"
         done < <(git svn rebase 2>/dev/null | sed -nl 's/^r\([0-9]*\) *= *\([^ ]*\).*/\1 \2/p')
         echo
@@ -150,7 +164,8 @@ function update_git_svn_repository() {
 # Function that update an svn or git-svn local repository
 function update_repository() {
     local localdir="$1"
-    local repotype="$2"
+    local repotype='svn'
+    [[ -d "${localdir}/.git" ]] && repotype='git'
     case "$repotype" in
         svn)
              (cd "$localdir" && svn up >/dev/null)

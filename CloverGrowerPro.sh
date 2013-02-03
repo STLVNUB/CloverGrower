@@ -68,15 +68,6 @@ function checkConfig() {
         fi
         storeConfig 'CLOVERSVNURL' "$CLOVERSVNURL"
     fi
-    if [[ -z "$CLOVERLOCALREPO" ]];then
-        local repotype=$(prompt "Do you want svn or git local clover repository" "svn")
-        if [[ $(lc "$repotype") == g* ]];then
-            CLOVERLOCALREPO='git'
-        else
-            CLOVERLOCALREPO='svn'
-        fi
-        storeConfig 'CLOVERLOCALREPO' "$CLOVERLOCALREPO"
-    fi
 }
 
 function checkUpdate() {
@@ -191,8 +182,8 @@ function checkToolchain() {
 
 # Check Directories
 function checkDirs() {
-    for d in $cloverPKGDIR/CloverV2/EFI/drivers64UEFI ; do \
-     [[ ! -d "$d" ]] && mkdir -p "$d"
+    for d in "$cloverPKGDIR"/CloverV2/EFI/drivers64UEFI ; do
+        [[ ! -d "$d" ]] && mkdir -p "$d"
     done
 }
 
@@ -207,7 +198,7 @@ function checkEnv() {
 }
 
 # checkout/update svn
-# $1=name $2=Local folder, $2=svn Remote url
+# $1=name $2=Local folder, $3=svn Remote url
 # return code:
 #     0: no update found
 #     1: update found
@@ -215,7 +206,6 @@ function getSOURCEFILE() {
     local name="$1"
     local localdir="$2"
     local svnremoteurl="$3"
-    local repotype="${4:-svn}"
     local remoteRev=$(getSvnRevision "$svnremoteurl")
     if [[ ! -d "$localdir" ]]; then
         echob "    ERROR:"
@@ -225,8 +215,7 @@ function getSOURCEFILE() {
     fi
     if [[ ! -d "${localdir}/.svn" && ! -d "${localdir}/.git" ]]; then
         echob "    Checking out Remote $name revision $remoteRev"
-        echo  "    svn co $svnremoteurl"
-        checkout_repository "$localdir" "$svnremoteurl" "$repotype"
+        checkout_repository "$localdir" "$svnremoteurl"
         return 1
     fi
 
@@ -238,7 +227,7 @@ function getSOURCEFILE() {
     echob "    Checked $name SVN, 'Updates found...'"
     echob "    Auto Updating $name From $localRev to $remoteRev ..."
     tput bel
-    update_repository "$localdir" "$repotype"
+    update_repository "$localdir"
     checkit "    Svn up $name" "$svnremoteurl"
     return 1
 }
@@ -281,7 +270,7 @@ function getSOURCE() {
 
     # Get Clover source
     cd "${EDK2DIR}"
-    getSOURCEFILE Clover "$CloverDIR" "$CLOVERSVNURL" "$CLOVERLOCALREPO"
+    getSOURCEFILE Clover "$CloverDIR" "$CLOVERSVNURL"
     buildClover=$?
 
     echo
