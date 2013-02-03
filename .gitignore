@@ -6,6 +6,9 @@
 # Local configuration file
 CloverGrowerPro.conf
 
+# Auto generated files
+/.last_check
+
 # Directories that we doesn't need to track
 builtPKG/
 edk2/
