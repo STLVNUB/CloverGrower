@@ -98,7 +98,7 @@ function checkUpdate() {
     local now=$(date '+%s')
     if [[ $(( ${last_check:-0} + $CHECKUPDATEINTERVAL )) -lt $now ]]; then
         echo "Checking for new version of CloverGrowerPro..."
-        git pull -f || exit 1
+        (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull -f) || exit 1
         echo "$now" > "$check_timestamp_file"
     fi
 }
