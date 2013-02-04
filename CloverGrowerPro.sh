@@ -15,6 +15,9 @@ declare -r CLOVER_GROWER_PRO_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_GROWER_PRO_DIR=${CLOVER_GROWER_PRO_SCRIPT%/*}
 declare -r CLOVER_GROWER_PRO_CONF="$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.conf"
 
+# Command line arguments
+declare -r ARGS="$@"
+
 # Source librarie
 source "$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.lib"
 
@@ -100,6 +103,7 @@ function checkUpdate() {
         echo "Checking for new version of CloverGrowerPro..."
         (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull -f) || exit 1
         echo "$now" > "$check_timestamp_file"
+        exec "$0" $ARGS
     fi
 }
 
