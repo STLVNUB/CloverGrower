@@ -17,7 +17,7 @@ declare -r CLOVER_GROWER_DIR=${CLOVER_GROWER_SCRIPT%/*}
 source "$CLOVER_GROWER_DIR/CloverGrower.lib"
 
 target="64"
-if [ "$1" == "" ]; then 
+if [ "$1" != "" ]; then 
 	target="X64/IA32"
 fi
 
@@ -136,7 +136,7 @@ function getSOURCEFILE() {
         echob "    Checking out Remote $1 revision $checkoutRevision"
         echo  "    svn co $2"
         svn co "$2" "$1" &>/dev/null &
-        echob "    Waiting for svn to finish"
+        echob "    Waiting for $1 svn to finish"
         wait
         echob "    svn co $1, done, continuing"
         tput bel
@@ -383,7 +383,7 @@ function makePKG(){
 	echob "Available  : ${workSpaceAvail} MB"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
-	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ] && [ "$target" != "64" ]; then # don't build IF pkg already here
+	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
 			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | sed -n 's/^Clover revision: *//p')
 			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
@@ -404,7 +404,6 @@ function makePKG(){
 			echob "**************************************"
 		fi
 	fi	
-
     echo
 	if [[ -d "${CloverDIR}" ]]; then
 		cloverLVers=$(getSvnRevision "${CloverDIR}")

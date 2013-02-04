@@ -38,6 +38,7 @@ function checkit(){
         return $return_val
 	else
 		echob "$msg $error_msg ERROR!!"
+		echob "Good $hours"
 		exit $return_val
 	fi
 }
