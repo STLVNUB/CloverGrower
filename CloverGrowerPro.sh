@@ -209,16 +209,16 @@ case "${theSystem}" in
 esac
 
 function checkCloverLink() {
-    if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_PRO_SCRIPT" ]]; then
+    if [[ ! -L "/usr/local/bin/cloverpro" || $(readlink "/usr/local/bin/cloverpro") != "$CLOVER_GROWER_PRO_SCRIPT" ]]; then
         echob "Running CloverGrowerPro.sh"
         printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrowerPro.sh")
-        echob "You can THEN 'run' CloverGrowerPro.sh by typing 'clover' ;)"
+        echob "You can THEN 'run' CloverGrowerPro.sh by typing 'cloverpro' ;)"
         echob "Press Enter to continue"
         read
         if [ ! -d /usr/local/bin ]; then
             command="sudo mkdir -p /usr/local/bin"; echob "$command" ; eval $command
         fi
-        command="sudo ln -sf $CLOVER_GROWER_PRO_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
+        command="sudo ln -sf $CLOVER_GROWER_PRO_SCRIPT /usr/local/bin/cloverpro && sudo chown $theBoss /usr/local/bin/cloverpro"
         echob "$command" ; eval $command
     fi
 }
