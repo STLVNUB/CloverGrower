@@ -368,7 +368,9 @@ function cleanRUN(){
 
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
-    for arch in $(lc $archs); do
+    local archs=$(lc $archs)
+    unset IFS
+    for arch in $archs; do
         echob "running ./ebuild.sh -gcc${mygccVers} -$arch -$style"
         ./ebuild.sh -gcc${mygccVers} -$arch -"$style"
         checkit "Clover$arch $style"
