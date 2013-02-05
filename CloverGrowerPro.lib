@@ -228,7 +228,7 @@ function update_svn_repository() {
     local forcerevision="$1"
     local svn_option=
     [[ -n "$forcerevision" ]] && svn_option="-r $forcerevision"
-    local pending=$(svn status | sed -n 's/^M *//p')
+    local pending=$(svn status | sed -n 's/^[AM] *//p')
     if [[ -z "$pending" ]];then
         svn up $svn_option >/dev/null
     else
