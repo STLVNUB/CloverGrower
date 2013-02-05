@@ -264,7 +264,6 @@ function checkEnv() {
     # Check for svn
     [[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
     checkToolchain
-    checkDirs
 }
 
 # checkout/update svn
@@ -360,6 +359,9 @@ function cleanRUN(){
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
     echo "Building Clover$archs, gcc${mygccVers} $style"
+
+    # Check that all the needed directories are created
+    checkDirs
 
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
