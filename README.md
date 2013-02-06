@@ -17,7 +17,7 @@ Unix:
 
 Make sure you have Xcode Command Line Tools installed. Won't work without it.
 
-Unzip and run CloverGrower.command, you only need to do this ONCE.
+Unzip and run CloverGrower.sh, you only need to do this ONCE.
 CloverGrower will download all sources, GCC4.7.2, edk2 and Clover.
 First build will take some time as it needs to compile GCC4.7.2, then it builds edk2 BaseTools and then compiles Clover. 
 

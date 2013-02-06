@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# Usefull functions for CloverGrower
+# Usefull functions for CloverGrowerPro
 
 function echob() {
 	echo $(tput bold)"$1"$(tput sgr0)

@@ -9,12 +9,12 @@ export LC_ALL=C
 # Retrieve full path of the command
 declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 
-# Retrieve full path of CloverGrower
-declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
-declare -r CLOVER_GROWER_DIR=${CLOVER_GROWER_SCRIPT%/*}
+# Retrieve full path of CloverGrowerPro
+declare -r CLOVER_GROWER_PRO_SCRIPT=$(readlink "$CMD" || echo "$CMD")
+declare -r CLOVER_GROWER_PRO_DIR=${CLOVER_GROWER_PRO_SCRIPT%/*}
 
 # Source librarie
-source "$CLOVER_GROWER_DIR/CloverGrower.lib"
+source "$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.lib"
 
 target="64"
 if [ "$1" == "" ]; then
@@ -31,9 +31,9 @@ if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
 	echob "      Xcode Command Line Tools from Apple"
 	echob "      Not found!"
-	echob "      CloverGrower.command needs it";echo
+	echob "      CloverGrowerPro.sh needs it";echo
 	echob "      Going To Apple Developer Site"
-	echob "      Download & Install XCode Command Line Tools then re-run CloverGrower.command"
+	echob "      Download & Install XCode Command Line Tools then re-run CloverGrowerPro.sh"
 	open "https://developer.apple.com/downloads/"
 	wait
 	echob "Good $hours"
@@ -41,22 +41,22 @@ if [ ! -f /usr/bin/gcc ]; then
 	exit 1
 fi
 
-if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_SCRIPT" ]]; then
-	echob "Running CloverGrower.command"
-	printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrower.command")
-	echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
+if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_PRO_SCRIPT" ]]; then
+	echob "Running CloverGrowerPro.sh"
+	printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrowerPro.sh")
+	echob "You can THEN 'run' CloverGrowerPro.sh by typing 'clover' ;)"
 	read -p "Press 'c' to 'CREATE' the link or else to 'quit': " theKey
 	[[ $(lc "$theKey") != "c" ]] && echob "Ok, Bye" && exit
 	if [ ! -d /usr/local/bin ]; then
 		command="sudo mkdir -p /usr/local/bin"; echob "$command" ; eval $command
 	fi	
-	command="sudo ln -sf $CLOVER_GROWER_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
+	command="sudo ln -sf $CLOVER_GROWER_PRO_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
 	echob "$command" ; eval $command
 fi
 
 #vars
-export WORKDIR="$CLOVER_GROWER_DIR"
-export TOOLCHAIN="${CLOVER_GROWER_DIR}/toolchain"
+export WORKDIR="$CLOVER_GROWER_PRO_DIR"
+export TOOLCHAIN="${CLOVER_GROWER_PRO_DIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
