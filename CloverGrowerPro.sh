@@ -96,6 +96,7 @@ function checkConfig() {
 }
 
 function checkUpdate() {
+    [[ "$CHECKUPDATEINTERVAL" -lt 0 ]] && return
     local check_timestamp_file="$CLOVER_GROWER_PRO_DIR/.last_check"
     local last_check=$(cat "$check_timestamp_file" 2>/dev/null)
     local now=$(date '+%s')
