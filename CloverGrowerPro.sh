@@ -27,6 +27,7 @@ source "$CLOVER_GROWER_PRO_CONF"
 
 target="X64"
 
+DO_SETUP=
 MAKE_PACKAGE=1
 CLOVER_REMOTE_REV=
 CLOVER_LOCAL_REV=
@@ -39,9 +40,10 @@ usage () {
     echo "Compile Clover UEFI/Bios OS X Booter"
     echo
     printOptionHelp "-r, --revision" "compile a specific Clover revision"
-    printOptionHelp "-t, --target" "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
-    printOptionHelp "-h, --help" "print this message and exit"
-    printOptionHelp "-v, --version" "print the version information and exit"
+    printOptionHelp "-t, --target"   "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
+    printOptionHelp "-s, --setup"    "setup $self."
+    printOptionHelp "-h, --help"     "print this message and exit"
+    printOptionHelp "-v, --version"  "print the version information and exit"
     echo
     echo "Report any issue to https://github.com/JrCs/CloverGrowerPro/issues"; echo
 }
@@ -54,12 +56,22 @@ function checkOptions() {
 }
 
 function checkConfig() {
-    if [[ -z "$CHECKUPDATEINTERVAL" ]];then
+    if [[ -z "$CHECKUPDATEINTERVAL" || -n "$DO_SETUP" ]];then
         local updateInterval
         local msg=$(printf "Check for CloverGrowerPro update every %say/%seek/%sonth/%sever" \
                     $(echob "D") $(echob "W") $(echob "M") $(echob "N"))
+
+        local default_checkupdateinterval='W'
+
+        case ${CHECKUPDATEINTERVAL} in
+            -1)       default_checkupdateinterval='N' ;;
+            86400)    default_checkupdateinterval='D' ;;
+            18446400) default_checkupdateinterval='M' ;;
+        esac
+
+        CHECKUPDATEINTERVAL=
         while [[ -z "$CHECKUPDATEINTERVAL" ]]; do
-            CHECKUPDATEINTERVAL=$(prompt "$msg" "W")
+            CHECKUPDATEINTERVAL=$(prompt "$msg" "$default_checkupdateinterval")
             case "$CHECKUPDATEINTERVAL" in
                 [Nn]) CHECKUPDATEINTERVAL=-1       ;;
                 [Dd]) CHECKUPDATEINTERVAL=86400    ;;
@@ -69,21 +81,33 @@ function checkConfig() {
             esac
         done
         storeConfig 'CHECKUPDATEINTERVAL' "$CHECKUPDATEINTERVAL"
+        echo
     fi
-    if [[ -z "$TOOLCHAIN" ]];then
+
+    if [[ -z "$TOOLCHAIN" || -n "$DO_SETUP" ]];then
         echo "Where to put the toolchain directory ?"
-        TOOLCHAIN=$(prompt "TOOCHAIN directory" "$CLOVER_GROWER_PRO_DIR/toolchain")
+        local default_toolchain="${TOOLCHAIN:-${CLOVER_GROWER_PRO_DIR}/toolchain}"
+        TOOLCHAIN=$(prompt "TOOCHAIN directory" "$default_toolchain")
         storeConfig 'TOOLCHAIN' "$TOOLCHAIN"
-    fi
-    if [[ -z "$EDK2DIR" ]];then
+		echo
+	fi
+
+    if [[ -z "$EDK2DIR" || -n "$DO_SETUP" ]];then
         echo "Where to put the edk2 source files ?"
-        EDK2DIR=$(prompt "edk2 directory" "$CLOVER_GROWER_PRO_DIR/edk2")
+        local default_edk2dir="${EDK2DIR:-${CLOVER_GROWER_PRO_DIR}/edk2}"
+        EDK2DIR=$(prompt "edk2 directory" "$default_edk2dir")
         storeConfig 'EDK2DIR' "$EDK2DIR"
+		echo
     fi
-    if [[ -z "$CLOVERSVNURL" ]]; then
-        local developper=$(prompt "Do you have the rights to commit Clover source files" "No")
+
+    if [[ -z "$CLOVERSVNURL" || -n "$DO_SETUP" ]]; then
+        local default_developer='No'
+        case "$CLOVERSVNURL" in
+            *svn+ssh:*) default_developer='Yes';;
+        esac
+        local developer=$(prompt "Do you have the rights to commit Clover source files" "$default_developer")
         local login
-        if [[ $(lc "$developper") == y* ]];then
+        if [[ $(lc "$developer") == y* ]];then
             login=$(prompt "What is your login on sourceforge.net" "")
         fi
         if [[ -n "$login" ]];then
@@ -92,7 +116,8 @@ function checkConfig() {
             CLOVERSVNURL='svn://svn.code.sf.net/p/cloverefiboot/code'
         fi
         storeConfig 'CLOVERSVNURL' "$CLOVERSVNURL"
-    fi
+		echo
+	fi
 }
 
 function checkUpdate() {
@@ -143,6 +168,9 @@ while [[ $# -gt 0 ]]; do
                      shift
                      target=$(echo "$option" | sed 's/--target=//')
                      ;;
+        -s | --setup)
+                     shift
+                     DO_SETUP=1 ;;
         *)
             printf "Unrecognized option \`%s'\n" "$option" 1>&2
             usage
