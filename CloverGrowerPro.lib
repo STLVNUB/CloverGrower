@@ -2,8 +2,39 @@
 
 # Usefull functions for CloverGrowerPro
 
+sayColor() {
+    local fmt="%s"
+    case "$1" in
+        error|red)
+            fmt='\e[1;31m%s\e[0m';; # bold red
+        skip|blue)
+            fmt='\e[1;34m%s\e[0m';; # bold blue
+        warn|yellow)
+            fmt='\e[1;33m%s\e[0m';; # bold yellow
+        pass|green)
+            fmt='\e[1;32m%s\e[0m';; # bold green
+        info|cyan)
+            fmt='\e[1;36m%s\e[0m';; # cyan
+    esac
+    shift
+    printf "$fmt\n" "$*"
+}
+
+say() {
+    sayColor info "$*"
+}
+
+error() {
+    sayColor error "Error: $*" >&2
+}
+
+die() {
+    error "$*"
+    exit 1
+}
+
 function echob() {
-	echo $(tput bold)"$1"$(tput sgr0)
+    echo $(tput bold)"$1"$(tput sgr0)
 }
 
 # Convert argument to lowercase
@@ -12,12 +43,12 @@ function lc() {
 }
 
 function prompt() {
-	local default=${2:+[$2]}
-	read -p "$1 $default: " answer >&2
-	if [[ -z "$answer" && -n "$2" ]]; then
-		answer="$2"
-	fi
-	echo "$answer"
+    local default=${2:+[$2]}
+    read -p "$1 $default: " answer >&2
+    if [[ -z "$answer" && -n "$2" ]]; then
+        answer="$2"
+    fi
+    echo "$answer"
 }
 
 function storeConfig() {
@@ -65,16 +96,17 @@ function get_hours() {
 
 # Simple check return value function
 function checkit(){
-	return_val=$?
-	local msg="$1"
-	local error_msg="${2:-}"
-	if [[ "${return_val}" -eq 0 ]]; then
-		echob "$msg OK"
+    return_val=$?
+    local msg="$1"
+    local error_msg="${2:-}"
+    if [[ "${return_val}" -eq 0 ]]; then
+        msg=$(sayColor info "$msg")
+        printf "%s %s\n" "$msg" "$(sayColor pass OK)"
         return $return_val
-	else
-		echob "$msg $error_msg ERROR!!"
-		exit $return_val
-	fi
+    else
+        sayColor error "$msg $error_msg ERROR!!"
+        exit $return_val
+    fi
 }
 
 # Print help option
@@ -209,10 +241,9 @@ function update_git_svn_repository() {
             done < <(git svn fetch 2>/dev/null | sed -nl 's/^r\([0-9]*\) *= *\([^ ]*\).*/\1 \2/p')
             sha1=$(LC_ALL=C git svn find-rev r$forcerevision)
         else
-            echob "    Resetting branch to revision $forcerevision ..."
+            printf "    %s %s ...\n" "$(sayColor red 'Resetting branch to revision')" "$(sayColor yellow $forcerevision)"
         fi
         LC_ALL=C git reset --hard "$sha1" >/dev/null
-        echo
     else
         # git svn fetch --all | grep '^r'
         echo

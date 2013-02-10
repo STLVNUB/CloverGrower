@@ -51,8 +51,7 @@ usage () {
 
 function checkOptions() {
     if [[ -n "$FORCE_REVISION" && ! "$FORCE_REVISION" =~ ^[0-9]*$ ]];then
-        echo "Invalid revision '$FORCE_REVISION': must be an integer !" >&2
-        exit 1
+        die "Invalid revision '$FORCE_REVISION': must be an integer !"
     fi
 }
 
@@ -144,17 +143,17 @@ function checkUpdate() {
     fi
 }
 
-function argument() {
+argument() {
     local opt=$1
     shift
     if [[ $# -eq 0 ]]; then
-        printf "%s: option \`%s' requires an argument\n" "$0" "$opt" 1>&2
-        exit 1
+        die $(printf "%s: option \`%s' requires an argument\n" "$0" "$opt")
     fi
     echo $1
 }
 
 # Check the arguments.
+set -e
 while [[ $# -gt 0 ]]; do
     option=$1
 
@@ -189,6 +188,7 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+set +e
 
 checkOptions
 checkConfig
@@ -336,8 +336,8 @@ function getSOURCEFILE() {
         echob "    Checked $name SVN, 'No updates were found...'"
         return 0
     fi
-    echob "    Checked $name SVN, 'Updates found...'"
-    echob "    Auto Updating $name From $localRev to $checkoutRev ..."
+    printf "    %s, %s\n" "$(echob Checked $name SVN)" "$(sayColor info Updates found...)"
+    printf "    %s %s %s %s ...\n" "$(sayColor info Auto Updating $name From)" "$(sayColor yellow $localRev)" "$(sayColor info 'to')" "$(sayColor green $checkoutRev)"
     tput bel
     if [[ "$localdir" == */Clover ]]; then
         update_repository "$localdir" "$checkoutRev"
@@ -451,8 +451,8 @@ autoBuild(){
         local edk2LocalRev=$(getSvnRevision "$EDK2DIR")
         echob "*******************************************"
         echob "$buildMess"
-        echob "$(printf '*    Revisions:  edk2: %-19s*\n' $edk2LocalRev)"
-        echob "$(printf '*              Clover: %-19s*\n' $versionToBuild)"
+        echob "$(printf '*    Revisions:   %s: %-29s%s\n' $(sayColor info 'edk2') $(sayColor green $edk2LocalRev) $(echob '*'))"
+        echob "$(printf '*               %s: %-29s%s\n' $(sayColor info 'Clover') $(sayColor green $versionToBuild) $(echob '*'))"
         local IFS=
         local flags="$mygccVers $theARCHS $style"
         echob "$(printf '*    Using Flags: gcc%-21s*\n' $flags)"
@@ -471,7 +471,8 @@ autoBuild(){
         else
             timeToBuild=$(printf "%ds\n" $((buildTime)))
         fi
-        echob "Clover Grower Complete Build process took $timeToBuild to complete..."
+        printf "%s %s %s\n" "$(sayColor info 'Clover Grower Complete Build process took')" \
+         "$(sayColor green $timeToBuild)" "$(sayColor info 'to complete...')"
         echo
     fi
 }
@@ -517,20 +518,21 @@ function makePKG(){
             if [[ -n "$FORCE_REVISION" ]]; then
                 versionToBuild=$FORCE_REVISION
                 if [[ "${CLOVER_LOCAL_REV}" -ne "${versionToBuild}" ]]; then
-                    echob "Forcing Clover revision $versionToBuild"
+                    printf "%s %s\n" "$(sayColor info 'Forcing Clover revision')" "$(sayColor yellow $versionToBuild)"
                     cloverUpdate="Yes"
                 fi
             else
                 if [[ "${CLOVER_LOCAL_REV}" -ne "${versionToBuild}" ]]; then
-                    echob "Clover Update Detected !"
+                    sayColor info "Clover Update Detected !"
                     echob  "******** Clover Package STATS **********"
-                    echob "$(printf '*       local  revision at %-12s*\n' $CLOVER_LOCAL_REV)"
-                    echob "$(printf '*       remote revision at %-12s*\n' $CLOVER_REMOTE_REV)"
-                    echob "$(printf '*       Package Built   =  %-12s*\n' $built)"
+                    echob "$(printf '*       local  revision at %-23s%s\n' $(sayColor yellow $CLOVER_LOCAL_REV)  $(echob '*'))"
+                    echob "$(printf '*       remote revision at %-23s%s\n' $(sayColor green  $CLOVER_REMOTE_REV) $(echob '*'))"
+                    echob "$(printf '*       Package Built   =  %-23s%s\n' $(sayColor info   $built) $(echob '*'))"
                     echob "****************************************"
                     cloverUpdate="Yes"
                 else
-                    echob "No Clover Update found. Current revision: ${CLOVER_LOCAL_REV}"
+                    printf "%s %s %s\n" "$(sayColor info 'No Clover Update found.')" \
+                     "$(echob 'Current revision:')" "$(sayColor green ${CLOVER_LOCAL_REV})"
                 fi
             fi
         fi
@@ -577,16 +579,17 @@ function makePKG(){
          "${EDK2DIR}/Conf/tools_def.txt"
         checkit "Patching edk2/Conf/tools_def.txt"
 
-        echob "Clover updated, so rm the build folder"
         rm -Rf "${buildDIR}"/*
+        checkit "Clover updated, so rm the build folder"
 
-        echob "Copy Files/HFSPlus Clover/HFSPlus"
         cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
+        checkit "Copy Files/HFSPlus Clover/HFSPlus"
     fi
 
     # If not already built force Clover build
     if [[ "$built" == "No" ]]; then
-        echob "No build already done. Forcing Clover build"
+        printf "%s %s\n" "$(echob 'No build already done.')" \
+         "$(sayColor info 'Forcing Clover build...')"
         echo
         buildClover=1
     fi
