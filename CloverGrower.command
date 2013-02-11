@@ -11,7 +11,7 @@ declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 
 # Retrieve full path of CloverGrower
 declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
-declare -r CLOVER_GROWER_DIR=${CLOVER_GROWER_SCRIPT%/*}
+declare -r CLOVER_GROWER_DIR="${CLOVER_GROWER_SCRIPT%/*}"
 
 # Source librarie
 source "$CLOVER_GROWER_DIR/CloverGrower.lib"
@@ -54,7 +54,21 @@ if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$C
 	command="sudo ln -sf $CLOVER_GROWER_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
 	echob "$command" ; eval $command
 fi
-
+# check for space in Volume Name
+CLOVER_GROWER_DIR_SPACE=$(readlink "/usr/local/bin/clover" | tr ' ' '_')
+if [ "${CLOVER_GROWER_DIR_SPACE}" != "${CLOVER_GROWER_SCRIPT}" ]; then
+	echob "Space in Volume Name Detected!!"
+	echob "Recomend you change Volume Name"
+	echob " From:" 
+	echob "      $CLOVER_GROWER_DIR"
+	echob "   To:"
+	echob "      $CLOVER_GROWER_DIR_SPACE"
+	echob "You MUST change name to continue"
+	echob "Press any to exit "
+	read ansr
+	echob "OK, change name yourself and re-run $CLOVER_GROWER_SCRIPT"
+	exit		
+fi	
 #vars
 export WORKDIR="$CLOVER_GROWER_DIR"
 export TOOLCHAIN="${CLOVER_GROWER_DIR}/toolchain"
