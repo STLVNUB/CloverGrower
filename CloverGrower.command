@@ -14,8 +14,7 @@ declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_GROWER_DIR="${CLOVER_GROWER_SCRIPT%/*}"
 
 # Source librarie
-source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
-
+source "$CLOVER_GROWER_DIR/CloverGrower.lib"
 
 target="64"
 if [ "$1" != "" ]; then 
@@ -50,29 +49,29 @@ if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$C
 	read -p "Press 'c' to 'CREATE' the link or else to 'quit': " theKey
 	[[ $(lc "$theKey") != "c" ]] && echob "Ok, Bye" && exit
 	if [ ! -d /usr/local/bin ]; then
-		command='sudo mkdir -p /usr/local/bin'; echob "$command" ; eval "$command"
+		command="sudo mkdir -p /usr/local/bin"; echob "$command" ; eval $command
 	fi	
-	command='sudo ln -sf "${CLOVER_GROWER_SCRIPT}" /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover'
-	echob "$command" ; eval "$command"
+	command="sudo ln -sf $CLOVER_GROWER_SCRIPT /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover"
+	echob "$command" ; eval $command
 fi
+# check for space in Volume Name
 CLOVER_GROWER_DIR_SPACE=$(readlink "/usr/local/bin/clover" | tr ' ' '_')
-if [[ "${CLOVER_GROWER_DIR_SPACE}" != "${CLOVER_GROWER_SCRIPT}" ]]; then
+if [ "${CLOVER_GROWER_DIR_SPACE}" != "${CLOVER_GROWER_SCRIPT}" ]; then
 	echob "Space in Volume Name Detected!!"
 	echob "Recomend you change Volume Name"
 	echob " From:" 
-	echob "      ${CLOVER_GROWER_DIR}"
+	echob "      $CLOVER_GROWER_DIR"
 	echob "   To:"
-	echob "      ${CLOVER_GROWER_DIR_SPACE}"
+	echob "      $CLOVER_GROWER_DIR_SPACE"
 	echob "You MUST change name to continue"
 	echob "Press any to exit "
 	read ansr
-	echob "OK, change name yourself and re-run ${CLOVER_GROWER_SCRIPT}"
-	echob "Good $hours $user"
+	echob "OK, change name yourself and re-run $CLOVER_GROWER_SCRIPT"
 	exit		
 fi	
 #vars
-export WORKDIR="${CLOVER_GROWER_DIR}"
-export TOOLCHAIN="${WORKDIR}/toolchain"
+export WORKDIR="$CLOVER_GROWER_DIR"
+export TOOLCHAIN="${CLOVER_GROWER_DIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
@@ -156,6 +155,26 @@ function getSOURCEFILE() {
         echob "    svn co $1, done, continuing"
         tput bel
         echo "${checkoutRevision}" > ${1}/Lvers.txt	# make initial revision txt file
+        if [[ "$1" == "edk2" ]]; then
+        	cd "${edk2DIR}"
+
+            # Remove old edk2 config files
+            rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+
+            # Create new default edk2 files in edk2/Conf
+            ./edksetup.sh >/dev/null
+
+            # Patch edk2/Conf/tools_def.txt for GCC
+            patch --quiet -d "${edk2DIR}/Conf" < ${filesDIR}/tools_def.patch
+            checkit "    Patching edk2/Conf/tools_def.txt"
+
+			echob "    Make edk2 BaseTools.."
+            make -C BaseTools &>/dev/null
+        else 
+           	echob "    Copy Files/HFSPlus Clover/HFSPlus"
+        	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
+    	fi
+        echo
     else
     	(cd "$1" && svn up >/dev/null)
     	checkit "    Svn up $1" "$2"
@@ -174,32 +193,11 @@ function getSOURCE() {
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	    if [[ ! -f "${edk2DIR}"/Basetools/Source/Bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED
-	    	# but no check for that NOW.
-        	cd "${edk2DIR}"
-
-            # Remove old edk2 config files
-            rm -f Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
-
-            # Create new default edk2 files in edk2/Conf
-            ./edksetup.sh >/dev/null
-
-            # Patch edk2/Conf/tools_def.txt for GCC
-            patch --quiet -d Conf < "${filesDIR}"/tools_def.patch
-            checkit "    Patching edk2/Conf/tools_def.txt"
-
-			echob "    Make edk2 BaseTools.."
-            make -C BaseTools &>/dev/null
-       	fi	    
     fi
 
     # Get Clover source
     cd "${edk2DIR}"
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
-    if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then # only needs to be done ONCE.
-        echob "    Copy Files/HFSPlus Clover/HFSPlus"
-    	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
-    fi
     echo
 }
 
@@ -248,8 +246,6 @@ function DoLinks(){
     TARGET="$2"
     if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
         mkdir -p "${TOOLCHAIN}/${ARCH}"
-    fi
-    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "$TARGET-gcc" ]]; then # need to do this
         echo "  Fixing your $gccVers ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
             ln -sf "${CG_PREFIX}"/bin/$TARGET-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
@@ -326,7 +322,7 @@ case $choose in
 	esac
 if [ "$sudoIT" == "sudo" ];then
 	echob "  Need Admin Privileges for ${CG_PREFIX}"
-	[ ! -d "${CG_PREFIX}"/src ] && "$sudoIT" mkdir -p "${CG_PREFIX}"/src && "$sudoIT" chown -R root:wheel "${CG_PREFIX}"
+	[ ! -d "${CG_PREFIX}"/src ] && "$sudoIT" mkdir -p "${CG_PREFIX}"/src && "$sudoIT" chown -R 0:0 "${CG_PREFIX}"
 else
 	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
 fi		
@@ -397,8 +393,8 @@ function makePKG(){
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'";echo
-	echob "Work Folder     : $WORKDIR"
-	echob "Available Space : ${workSpaceAvail} MB";echo
+	echob "Work Folder: $WORKDIR"
+	echob "Available  : ${workSpaceAvail} MB"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
@@ -445,7 +441,7 @@ function makePKG(){
             echob "No Clover Update found. Current revision: ${cloverLVers}"
         fi
     fi
-    if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
+    if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then
     	echo
     	echob "Getting SVN Source, Hang ten…"
     	getSOURCE
