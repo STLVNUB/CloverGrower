@@ -174,23 +174,23 @@ function getSOURCE() {
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	    if [[ ! -f "${edk2DIR}"/Basetools/Source/Bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED
-	    	# but no check for that NOW.
-        	cd "${edk2DIR}"
+	fi    
+	if [[ ! -f "${edk2DIR}"/Basetools/Source/Bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED
+	    # but no check for that NOW.
+        cd "${edk2DIR}"
 
-            # Remove old edk2 config files
-            rm -f Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+        # Remove old edk2 config files
+        rm -f Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 
-            # Create new default edk2 files in edk2/Conf
-            ./edksetup.sh >/dev/null
+        # Create new default edk2 files in edk2/Conf
+        ./edksetup.sh >/dev/null
 
-            # Patch edk2/Conf/tools_def.txt for GCC
-            patch --quiet -d Conf < "${filesDIR}"/tools_def.patch
-            checkit "    Patching edk2/Conf/tools_def.txt"
+        # Patch edk2/Conf/tools_def.txt for GCC
+        patch --quiet -d Conf < "${filesDIR}"/tools_def.patch
+        checkit "    Patching edk2/Conf/tools_def.txt"
 
-			echob "    Make edk2 BaseTools.."
-            make -C BaseTools &>/dev/null
-       	fi	    
+		echob "    Make edk2 BaseTools.."
+        make -C BaseTools &>/dev/null
     fi
 
     # Get Clover source
