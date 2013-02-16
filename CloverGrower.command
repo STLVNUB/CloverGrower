@@ -249,7 +249,7 @@ function DoLinks(){
     if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
         mkdir -p "${TOOLCHAIN}/${ARCH}"
     fi
-    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "$TARGET-gcc" ]]; then # need to do this
+    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGET-gcc" ]]; then # need to do this
         echo "  Fixing your $gccVers ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
             ln -sf "${CG_PREFIX}"/bin/$TARGET-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
