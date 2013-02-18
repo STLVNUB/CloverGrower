@@ -174,11 +174,9 @@ function getSOURCE() {
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	fi    
-	if [[ ! -f "${edk2DIR}"/Basetools/Source/Bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED
-	    # but no check for that NOW.
-        cd "${edk2DIR}"
-
+	fi   
+	cd "${edk2DIR}"
+	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,but no check for that NOW.
         # Remove old edk2 config files
         rm -f Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 
@@ -194,7 +192,6 @@ function getSOURCE() {
     fi
 
     # Get Clover source
-    cd "${edk2DIR}"
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
     if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
