@@ -15,9 +15,6 @@ declare -r CLOVER_GROWER_PRO_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_GROWER_PRO_DIR=${CLOVER_GROWER_PRO_SCRIPT%/*}
 declare -r CLOVER_GROWER_PRO_CONF="$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.conf"
 
-# Command line arguments
-declare -r ARGS="$@"
-
 # Source librarie
 source "$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.lib"
 
@@ -32,6 +29,7 @@ MAKE_PACKAGE=1
 CLOVER_REMOTE_REV=
 CLOVER_LOCAL_REV=
 FORCE_REVISION=
+FORCE_CHECK_UPDATE=0
 FW_VBIOS_PATH=
 
 # Usage: usage
@@ -40,11 +38,12 @@ usage () {
     printf "Usage: %s [OPTION]\n" "$self"
     echo "Compile Clover UEFI/Bios OS X Booter"
     echo
-    printOptionHelp "-r, --revision" "compile a specific Clover revision"
-    printOptionHelp "-t, --target"   "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
-    printOptionHelp "-s, --setup"    "setup $self."
-    printOptionHelp "-h, --help"     "print this message and exit"
-    printOptionHelp "-v, --version"  "print the version information and exit"
+    printOptionHelp "-r, --revision"     "compile a specific Clover revision"
+    printOptionHelp "-t, --target"       "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
+    printOptionHelp "-u, --check-update" "force check update."
+    printOptionHelp "-s, --setup"        "setup $self."
+    printOptionHelp "-h, --help"         "print this message and exit"
+    printOptionHelp "-v, --version"      "print the version information and exit"
     echo
     echo "Report any issue to https://github.com/JrCs/CloverGrowerPro/issues"; echo
 }
@@ -131,15 +130,16 @@ function checkConfig() {
 }
 
 function checkUpdate() {
-    [[ "$CHECKUPDATEINTERVAL" -lt 0 ]] && return
+    [[ "$CHECKUPDATEINTERVAL" -lt 0 && "$FORCE_CHECK_UPDATE" -eq 0 ]] && return
     local check_timestamp_file="$CLOVER_GROWER_PRO_DIR/.last_check"
-    local last_check=$(cat "$check_timestamp_file" 2>/dev/null)
+    local last_check=0
+    [[ "$FORCE_CHECK_UPDATE" -eq 0 ]] && last_check=$(cat "$check_timestamp_file" 2>/dev/null)
     local now=$(date '+%s')
     if [[ $(( ${last_check:-0} + $CHECKUPDATEINTERVAL )) -lt $now ]]; then
         echo "Checking for new version of CloverGrowerPro..."
-        (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull -f) || exit 1
+        (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull --rebase -f) || exit 1
         echo "$now" > "$check_timestamp_file"
-        exec "$0" $ARGS
+        exec "$0" "${ARGS[@]}"
     fi
 }
 
@@ -153,6 +153,8 @@ argument() {
 }
 
 # Check the arguments.
+declare -a ARGS=()
+
 set -e
 while [[ $# -gt 0 ]]; do
     option=$1
@@ -166,27 +168,34 @@ while [[ $# -gt 0 ]]; do
                      exit 0 ;;
         -r | --revision)
                      shift
-                     FORCE_REVISION=$(argument $option "$@"); shift;;
+                     FORCE_REVISION=$(argument $option "$@"); shift
+                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
         --revision=*)
                      shift
                      FORCE_REVISION=$(echo "$option" | sed 's/--revision=//')
-                     ;;
+                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
         -t | --target)
                      shift
-                     target=$(argument $option "$@"); shift;;
+                     target=$(argument $option "$@"); shift
+                     ARGS[${#ARGS[*]}]="--target=$target" ;;
         --target=*)
                      shift
                      target=$(echo "$option" | sed 's/--target=//')
-                     ;;
+                     ARGS[${#ARGS[*]}]="--target=$target" ;;
         -s | --setup)
                      shift
-                     DO_SETUP=1 ;;
+                     DO_SETUP=1
+                     ARGS[${#ARGS[*]}]="$option" ;;
+        -u | --check-update)
+                     shift
+                     FORCE_CHECK_UPDATE=1 ;;
         *)
             printf "Unrecognized option \`%s'\n" "$option" 1>&2
             usage
             exit 1
             ;;
     esac
+
 done
 set +e
 
