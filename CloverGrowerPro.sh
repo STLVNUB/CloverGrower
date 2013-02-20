@@ -18,6 +18,14 @@ declare -r CLOVER_GROWER_PRO_CONF="$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.conf"
 # Source librarie
 source "$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.lib"
 
+# Check that CloverGrowerPro is well installed
+if [[ ! -e "$CLOVER_GROWER_PRO_DIR"/.git ]]; then
+    error "Bad installation !"
+    sayColor red "$self must be installed with the git clone command and not from an archive !"
+    sayColor red "See https://github.com/JrCs/CloverGrowerPro/blob/master/README.md for more information"
+    exit 1
+fi
+
 # Source config file
 [[ ! -f "$CLOVER_GROWER_PRO_CONF" ]] && touch "$CLOVER_GROWER_PRO_CONF"
 source "$CLOVER_GROWER_PRO_CONF"
