@@ -673,3 +673,11 @@ built="No"
 makePKG "$target" # do complete build
 
 echob "Good $hours."
+
+# Local Variables:      #
+# mode: ksh             #
+# tab-width: 4          #
+# indent-tabs-mode: nil #
+# End:                  #
+#
+# vi: set expandtab ts=4 sw=4 sts=4: #
