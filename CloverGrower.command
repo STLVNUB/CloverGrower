@@ -1,6 +1,6 @@
 #!/bin/bash
 
-myV="4.9a"
+myV="4.9b"
 gccVersToUse="4.7.2" # failsafe check
 
 # Reset locales (important when grepping strings from output commands)
@@ -503,8 +503,10 @@ function makePKG(){
 		cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
 		rm -rf "${CloverDIR}"/CloverPackage/sym
-		echob "rm -rf src/edk2/Build."
+		echob "rm -rf src/edk2/Build Folder"
 		rm -rf "${buildDIR}"
+		echob "rm -rf builtPKG/${versionToBuild}/package Folder, it is 'NOT NEEDED'"
+		rm -rf "${builtPKGDIR}"/"${versionToBuild}"/package
 		echob "open builtPKG/${versionToBuild}."
 		open "${builtPKGDIR}"/"${versionToBuild}"
 		tput bel
