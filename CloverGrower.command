@@ -1,6 +1,6 @@
 #!/bin/bash
 
-myV="4.9c"
+myV="4.9d"
 gccVersToUse="4.7.2" # failsafe check
 
 # Reset locales (important when grepping strings from output commands)
@@ -476,10 +476,8 @@ function makePKG(){
 	fi
 	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ]; then # make pkg if not there
-		echob "Type 'm' To make Clover_v2_rL${versionToBuild}.pkg..."
-		read choose
-		case $choose in
-		m|M)
+		echob "Making Clover_v2_rL${versionToBuild}.pkg..."
+		sleep 3
 		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
@@ -511,11 +509,6 @@ function makePKG(){
 		echob "open builtPKG/${versionToBuild}."
 		open "${builtPKGDIR}"/"${versionToBuild}"
 		tput bel
-		;;
-		*)
-		esac
-	else
-		echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made !"
 	fi
 	
 }
