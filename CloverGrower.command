@@ -1,6 +1,6 @@
 #!/bin/bash
 
-myV="4.9b"
+myV="4.9c"
 gccVersToUse="4.7.2" # failsafe check
 
 # Reset locales (important when grepping strings from output commands)
@@ -386,16 +386,6 @@ autoBuild(){
 function makePKG(){
 	versionToBuild=""
 	cloverUpdate="No"
-	echo
-	echob "********************************************"
-	echob "*             Good $hours              *"
-	echob "*      Welcome To CloverGrower V$myV       *"
-	echob "*        This script by STLVNUB            *"
-	echob "* Clover Credits: Slice, dmazar and others *"
-	echob "********************************************";echo
-	echob "$user running '$(basename $CMD)' on '$rootSystem'";echo
-	echob "Work Folder     : $WORKDIR"
-	echob "Available Space : ${workSpaceAvail} MB";echo
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
@@ -407,6 +397,7 @@ function makePKG(){
 				built="No "
 				cloverUpdate="Yes"
 			fi
+			clear
 			echob "*********Clover Build STATS***********"
 			echob "*      remote revision at ${CloverREV}       *" 
 			echob "*      local  revision at ${versionToBuild}       *"
@@ -419,7 +410,17 @@ function makePKG(){
 			echob "**************************************"
 		fi
 	fi	
-    echo
+	echo
+	echob "********************************************"
+	echob "*             Good $hours              *"
+	echob "*      Welcome To CloverGrower V$myV       *"
+	echob "*        This script by STLVNUB            *"
+	echob "* Clover Credits: Slice, dmazar and others *"
+	echob "********************************************";echo
+	echob "$user running '$(basename $CMD)' on '$rootSystem'";echo
+	echob "Work Folder     : $WORKDIR"
+	echob "Available Space : ${workSpaceAvail} MB";echo
+	echo
 	if [[ -d "${CloverDIR}" ]]; then
 		cloverLVers=$(getSvnRevision "${CloverDIR}")
 		if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
