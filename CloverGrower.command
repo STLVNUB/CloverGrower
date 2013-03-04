@@ -1,6 +1,5 @@
 #!/bin/bash
-
-myV="4.9d"
+myV="4.9e"
 gccVersToUse="4.7.2" # failsafe check
 
 # Reset locales (important when grepping strings from output commands)
@@ -12,7 +11,7 @@ declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 # Retrieve full path of CloverGrower
 declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_GROWER_DIR="${CLOVER_GROWER_SCRIPT%/*}"
-
+theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 
@@ -42,20 +41,42 @@ if [ ! -f /usr/bin/gcc ]; then
 	tput bel
 	exit 1
 fi
-
-if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_SCRIPT" ]]; then
-	echob "Running CloverGrower.command"
-	printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrower.command")
-	echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
-	read -p "Press 'c' to 'CREATE' the link or else to 'quit': " theKey
-	[[ $(lc "$theKey") != "c" ]] && echob "Ok, Bye" && exit
-	if [ ! -d /usr/local/bin ]; then
-		command='sudo mkdir -p /usr/local/bin'; echob "$command" ; eval "$command"
-	fi	
-	command='sudo ln -sf "${CLOVER_GROWER_SCRIPT}" /usr/local/bin/clover && sudo chown $theBoss /usr/local/bin/clover'
-	echob "$command" ; eval "$command"
+theLink="/usr/local/bin/clover"
+if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
+	if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_SCRIPT" ]]; then
+		echob "Running CloverGrower.command"
+		theText="link"
+		echob "To make it easier to use I will do one of the following"
+		echob "Create link, in /usr/local/bin.     Select any key"
+		echob "Create Shortcut, put it on Desktop. Select 's'"
+		echob "Type 's' OR any key"
+		read theSelect
+		case "$theSelect" in
+                s|S)
+                     theLink="$theShortcut"/CloverGrower.command
+                     theText="shortcut"
+                     sudoit=
+                     ;;
+                *)
+                sudoit="sudo"
+        esac
+		printf "Will create link %s to %s\n" $(echob "$theLink") $(echob "CloverGrower.command")
+		if [ "$theLink" == "/usr/local/bin/clover" ]; then
+			echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
+			if [ ! -d /usr/local/bin ]; then
+				command='sudo mkdir -p /usr/local/bin'; echob "$command" ; eval "$command"
+			fi
+		else
+			echob "You can THEN run by double clicking CloverGrower.command on Desktop"
+		fi		
+		command='$sudoit ln -sf "${CLOVER_GROWER_SCRIPT}" "$theLink" && $sudoit chown $theBoss "$theLink"'
+		echob "$command" ; eval "$command"
+	fi
 fi
-CLOVER_GROWER_DIR_SPACE=$(readlink "/usr/local/bin/clover" | tr ' ' '_')
+if [[ -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
+	theLink="$theShortcut"/CloverGrower.command
+fi
+CLOVER_GROWER_DIR_SPACE=$(readlink "$theLink" | tr ' ' '_')
 if [[ "${CLOVER_GROWER_DIR_SPACE}" != "${CLOVER_GROWER_SCRIPT}" ]]; then
 	echob "Space in Volume Name Detected!!"
 	echob "Recomend you change Volume Name"
