@@ -435,14 +435,13 @@ function makePKG(){
 			cd "${CloverDIR}"
        		changesSVN=$(svn log -v -r "$CloverREV")
        		echob "$changesSVN"
-       		echob "Press any key…"
        		tput bel
-       		read
        		cd ..
     	else
             echob "No Clover Update found. Current revision: ${cloverLVers}"
         fi
     fi
+    sleep 3
     if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echo
     	echob "Getting SVN Source, Hang ten…"
