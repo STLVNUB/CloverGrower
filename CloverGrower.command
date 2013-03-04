@@ -1,7 +1,6 @@
 #!/bin/bash
 myV="4.9e"
 gccVersToUse="4.7.2" # failsafe check
-
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
@@ -15,7 +14,6 @@ theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 
-
 target="64"
 if [ "$1" != "" ]; then 
 	target="X64/IA32"
@@ -26,7 +24,11 @@ set -u
 user=$(id -un)
 theBoss=$(id -ur)
 hours=$(get_hours)
-
+theLink=/usr/local/bin/clover
+if [[ -L "$theShortcut"/CloverGrower.command ]]; then
+	theLink="$theShortcut"/CloverGrower.command
+fi
+CLOVER_GROWER_DIR_SPACE=`echo "$CLOVER_GROWER_DIR" | tr ' ' '_'`
 if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
 	echob "      Xcode Command Line Tools from Apple"
@@ -41,9 +43,23 @@ if [ ! -f /usr/bin/gcc ]; then
 	tput bel
 	exit 1
 fi
-theLink="/usr/local/bin/clover"
+if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
+	echob "Space in Volume Name Detected!!"
+	echob "Recomend you change Volume Name"
+	echob " From:" 
+	echob "      ${CLOVER_GROWER_DIR}"
+	echob "   To:"
+	echob "      ${CLOVER_GROWER_DIR_SPACE}"
+	echob "You MUST change name to continue"
+	echob "Press any to exit "
+	read ansr
+	echob "OK, change name yourself and re-run ${CLOVER_GROWER_SCRIPT}"
+	echob "Good $hours $user"
+	exit		
+fi	
+
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
-	if [[ ! -L "/usr/local/bin/clover" || $(readlink "/usr/local/bin/clover") != "$CLOVER_GROWER_SCRIPT" ]]; then
+	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
 		echob "Running CloverGrower.command"
 		theText="link"
 		echob "To make it easier to use I will do one of the following"
@@ -61,7 +77,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
                 sudoit="sudo"
         esac
 		printf "Will create link %s to %s\n" $(echob "$theLink") $(echob "CloverGrower.command")
-		if [ "$theLink" == "/usr/local/bin/clover" ]; then
+		if [ "$theLink" == /usr/local/bin/clover ]; then
 			echob "You can THEN 'run' CloverGrower.command by typing 'clover' ;)"
 			if [ ! -d /usr/local/bin ]; then
 				command='sudo mkdir -p /usr/local/bin'; echob "$command" ; eval "$command"
@@ -73,24 +89,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 		echob "$command" ; eval "$command"
 	fi
 fi
-if [[ -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
-	theLink="$theShortcut"/CloverGrower.command
-fi
-CLOVER_GROWER_DIR_SPACE=$(readlink "$theLink" | tr ' ' '_')
-if [[ "${CLOVER_GROWER_DIR_SPACE}" != "${CLOVER_GROWER_SCRIPT}" ]]; then
-	echob "Space in Volume Name Detected!!"
-	echob "Recomend you change Volume Name"
-	echob " From:" 
-	echob "      ${CLOVER_GROWER_DIR}"
-	echob "   To:"
-	echob "      ${CLOVER_GROWER_DIR_SPACE}"
-	echob "You MUST change name to continue"
-	echob "Press any to exit "
-	read ansr
-	echob "OK, change name yourself and re-run ${CLOVER_GROWER_SCRIPT}"
-	echob "Good $hours $user"
-	exit		
-fi	
+
 #vars
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
