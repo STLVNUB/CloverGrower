@@ -14,8 +14,9 @@ theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 
-target="64"
-if [ "$1" != "" ]; then 
+if [ "$1" == "" ]; then 
+	target="X64"
+else
 	target="X64/IA32"
 fi
 
@@ -230,25 +231,24 @@ function cleanRUN(){
 	clear
 	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
+	clear
 	if [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 ia32'
-		cd "${CloverDIR}"
-		for az in $archBits ; do
-			echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
-			./ebuild.sh -gcc${mygccVers} -$az -"$style" 
-			checkit "Clover$az $theStyle"
-		done
 		cd "${rEFItDIR}"
 		echob "	 Building rEFIt32: $builder $style $(date -j +%T)"
 		echob "	 With build32.sh"
+		clear
 		./"build32.sh" 
 		checkit "rEFIT_UEFI_$theBits: $theStyle" 
 	else
-		cd "${CloverDIR}"
-		echob "	 running ./ebuild.sh -gcc${mygccVers} -X64 -$style"
-		./ebuild.sh -gcc${mygccVers} -x64 -"$style" 
-		checkit "CloverX64 $theStyle"
-	fi
+		archBits='x64'
+	fi		
+	cd "${CloverDIR}"
+	for az in $archBits ; do
+		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
+		./ebuild.sh -gcc${mygccVers} -$az -"$style" 
+		checkit "Clover$az $theStyle"
+	done
 }
 
 # sets up 'new' sysmlinks for gcc47
@@ -437,7 +437,8 @@ function makePKG(){
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************";echo
-	echob "$user running '$(basename $CMD)' on '$rootSystem'";echo
+	echob "$user running '$(basename $CMD)' on '$rootSystem'"
+	echob "Building Clover revision:${CloverREV} as $target target";echo
 	echob "Work Folder     : $WORKDIR"
 	echob "Available Space : ${workSpaceAvail} MB";echo
 	echo
