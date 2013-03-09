@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="4.9e"
+myV="4.9f"
 gccVersToUse="4.7.2" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -204,9 +204,10 @@ function getSOURCE() {
         # Create new default edk2 files in edk2/Conf
         ./edksetup.sh >/dev/null
 
-        # Patch edk2/Conf/tools_def.txt for GCC
-        patch --quiet -d Conf < "${filesDIR}"/tools_def.patch
-        checkit "    Patching edk2/Conf/tools_def.txt"
+       # Patch edk2/Conf/tools_def.txt for GCC
+        sed -i'.orig' -e 's!^\(DEFINE GCC47_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/bin/x86_64-linux-gnu-!' \
+         "${EDK2DIR}/Conf/tools_def.txt"
+        checkit "Patching edk2/Conf/tools_def.txt"
 
 		echob "    Make edk2 BaseTools.."
         make -C BaseTools &>/dev/null
@@ -246,7 +247,7 @@ function cleanRUN(){
 	cd "${CloverDIR}"
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
-		./ebuild.sh -gcc${mygccVers} -$az -"$style" 
+		./ebuild.sh -gcc${mygccVers} -$az -"$style"
 		checkit "Clover$az $theStyle"
 	done
 }
