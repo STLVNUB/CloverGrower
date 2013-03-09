@@ -206,7 +206,7 @@ function getSOURCE() {
 
        # Patch edk2/Conf/tools_def.txt for GCC
         sed -i'.orig' -e 's!^\(DEFINE GCC47_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/bin/x86_64-linux-gnu-!' \
-         "${EDK2DIR}/Conf/tools_def.txt"
+         "${edk2DIR}/Conf/tools_def.txt"
         checkit "Patching edk2/Conf/tools_def.txt"
 
 		echob "    Make edk2 BaseTools.."
