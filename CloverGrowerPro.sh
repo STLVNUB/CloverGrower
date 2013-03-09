@@ -126,13 +126,15 @@ function checkConfig() {
         echo
     fi
 
-    if [[ -z "$FW_VBIOS_PATCH" || -n "$DO_SETUP" ]];then
-        local default_fw_vbios_patch='No'
-        [[ "$FW_VBIOS_PATCH" -ne 0 ]] && default_fw_vbios_patch='Yes'
-        local answer=$(prompt "Activate firmare VBios Patch by default" "$default_fw_vbios_patch")
-        FW_VBIOS_PATCH=0
-        [[ $(lc "$answer") == y* ]] && FW_VBIOS_PATCH=1
-        storeConfig 'FW_VBIOS_PATCH' "$FW_VBIOS_PATCH"
+    if [[ -z "$VBIOS_PATCH_IN_CLOVEREFI" || -n "$DO_SETUP" ]];then
+        local default_vbios_patch_in_cloverefi='No'
+        [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 ]] && \
+         default_vbios_patch_in_cloverefi='Yes'
+        local answer=$(prompt "Activate VBios Patch in CloverEFI by default" \
+         "$default_vbios_patch_in_cloverefi")
+        VBIOS_PATCH_IN_CLOVEREFI=0
+        [[ $(lc "$answer") == y* ]] && VBIOS_PATCH_IN_CLOVEREFI=1
+        storeConfig 'VBIOS_PATCH_IN_CLOVEREFI' "$VBIOS_PATCH_IN_CLOVEREFI"
         echo
     fi
 }
@@ -413,6 +415,7 @@ function getSOURCE() {
 function cleanRUN(){
     local builder=gcc
     local archs=$(echo "$1" | awk '{print toupper($0)}')
+    local ebuild_options=
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
     echo "Building Clover$archs, gcc${mygccVers} $style"
@@ -423,11 +426,9 @@ function cleanRUN(){
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
 
-    if [[ "$FW_VBIOS_PATCH" -ne 0 ]]; then
-        # Patch CloverX64.dsc
-        [[ -f "$CloverDIR/CloverX64.dsc.orig" ]] && mv "$CloverDIR/CloverX64.dsc.orig" "$CloverDIR/CloverX64.dsc"
-        sed -i'.orig' -e 's/# *\(GCC:\*_\*_\*_CC_FLAGS.*-DCLOVER_VBIOS_PATCH_IN_CLOVEREFI.*\)/\1/' "$CloverDIR/CloverX64.dsc"
-    fi
+    # We can activate VBios Patch in CloverEFI since revision 1162 of Clover
+    [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 && "$versionToBuild" -ge 1162 ]] && \
+     ebuild_options="$ebuild_options --vbios-patch-cloverefi"
 
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
@@ -435,12 +436,9 @@ function cleanRUN(){
     unset IFS
     for arch in $archs; do
         echob "running ./ebuild.sh -gcc${mygccVers} -$arch -$style"
-        ./ebuild.sh -gcc${mygccVers} -$arch -"$style"
+        ./ebuild.sh $ebuild_options -gcc${mygccVers} -$arch -$style
         checkit "Clover$arch $style"
     done
-
-    # Restore CloverX64.dsc
-    [[ -f "$CloverDIR/CloverX64.dsc.orig" ]] && mv "$CloverDIR/CloverX64.dsc.orig" "$CloverDIR/CloverX64.dsc"
 
     echo
 }
@@ -477,6 +475,7 @@ autoBuild(){
         tput bel
         sleep 3
         local startEpoch=$(date -u "+%s")
+        # Start build process
         cleanRUN "$theARCHS"
         built="Yes"
         local stopEpoch=$(date -u "+%s")
