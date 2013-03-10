@@ -424,6 +424,10 @@ function cleanRUN(){
     local builder=gcc
     local archs=$(echo "$1" | awk '{print toupper($0)}')
     local ebuild_options=
+
+    # Clear the package dir before compilation
+    [[ "$versionToBuild" -ge 1166 ]] && ./ebuild.sh cleanpkg &>/dev/null
+
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
     echo "Building Clover$archs, gcc${mygccVers} $style"
