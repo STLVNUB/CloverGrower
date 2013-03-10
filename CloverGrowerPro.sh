@@ -30,8 +30,6 @@ fi
 [[ ! -f "$CLOVER_GROWER_PRO_CONF" ]] && touch "$CLOVER_GROWER_PRO_CONF"
 source "$CLOVER_GROWER_PRO_CONF"
 
-target="X64"
-
 DO_SETUP=
 MAKE_PACKAGE=1
 CLOVER_REMOTE_REV=
@@ -126,6 +124,12 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -z "$DEFAULT_TARGET" || -n "$DO_SETUP" ]];then
+        DEFAULT_TARGET=$(prompt "Default target to use" "${DEFAULT_TARGET:-x64}")
+        storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET"
+        echo
+    fi
+
     if [[ -z "$VBIOS_PATCH_IN_CLOVEREFI" || -n "$DO_SETUP" ]];then
         local default_vbios_patch_in_cloverefi='No'
         [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 ]] && \
@@ -164,6 +168,7 @@ argument() {
 
 # Check the arguments.
 declare -a ARGS=()
+force_target=
 
 set -e
 while [[ $# -gt 0 ]]; do
@@ -186,11 +191,11 @@ while [[ $# -gt 0 ]]; do
                      ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
         -t | --target)
                      shift
-                     target=$(argument $option "$@"); shift
+                     force_target=$(argument $option "$@"); shift
                      ARGS[${#ARGS[*]}]="--target=$target" ;;
         --target=*)
                      shift
-                     target=$(echo "$option" | sed 's/--target=//')
+                     force_target=$(echo "$option" | sed 's/--target=//')
                      ARGS[${#ARGS[*]}]="--target=$target" ;;
         -s | --setup)
                      shift
@@ -212,6 +217,9 @@ set +e
 checkOptions
 checkConfig
 checkUpdate
+
+target="${force_target:-$DEFAULT_TARGET}"
+unset force_target
 
 # don't use -e
 set -u
