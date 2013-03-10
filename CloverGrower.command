@@ -198,26 +198,28 @@ function getSOURCE() {
 	fi   
 	cd "${edk2DIR}"
 	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,but no check for that NOW.
-        # Remove old edk2 config files
-        rm -f Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+      	# Remove old edk2 config files
+      	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 
-        # Create new default edk2 files in edk2/Conf
-        ./edksetup.sh >/dev/null
-
-       # Patch edk2/Conf/tools_def.txt for GCC
-        sed -i'.orig' -e 's!^\(DEFINE GCC47_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/bin/x86_64-linux-gnu-!' \
-         "${edk2DIR}/Conf/tools_def.txt"
-        checkit "Patching edk2/Conf/tools_def.txt"
-
-		echob "    Make edk2 BaseTools.."
+       # Create new default edk2 files in edk2/Conf
+      	./edksetup.sh >/dev/null
+      	echob "    Make edk2 BaseTools.."
         make -C BaseTools &>/dev/null
-    fi
+   	fi
 
-    # Get Clover source
+	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
     if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
+    	# get configuration files from Clover
+        cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}/Conf/"
+        cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}/Conf/"
+
+       # Patch edk2/Conf/tools_def.txt for GCC
+        sed -i'.orig' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" \
+         "${edk2DIR}/Conf/tools_def.txt"
+        checkit "Patching edk2/Conf/tools_def.txt"
     fi
     echo
 }
