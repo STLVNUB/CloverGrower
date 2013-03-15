@@ -98,7 +98,7 @@ workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
-UserDIR="${WORKDIR}"/User/etc
+CustomRCFiles="${WORKDIR}"/CustomRCFiles
 etcDIR="${WORKDIR}"/Files/etc
 srcDIR="${WORKDIR}"/src
 edk2DIR="${srcDIR}"/edk2
@@ -236,13 +236,7 @@ function cleanRUN(){
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
 	if [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 ia32'
-		cd "${rEFItDIR}"
-		echob "	 Building rEFIt32: $builder $style $(date -j +%T)"
-		echob "	 With build32.sh"
-		clear
-		./"build32.sh" 
-		checkit "rEFIT_UEFI_$theBits: $theStyle" 
+		archBits='x64 ia32'	
 	else
 		archBits='x64'
 	fi		
@@ -251,9 +245,18 @@ function cleanRUN(){
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		./ebuild.sh -gcc${mygccVers} -$az -"$style"
 		checkit "Clover$az $theStyle"
-	done
+		if [[ $az == ia32 ]]; then 
+			cd "${rEFItDIR}"
+			clear
+			echob "	 Building rEFIt32: $builder $style $(date -j +%T)"
+			echob "	 With build32.sh"
+			./"build32.sh" 
+			checkit "rEFIT_UEFI_$theBits: $theStyle" 
+			cd ..
+		fi
+	done	
 }
-
+	
 # sets up 'new' sysmlinks for gcc47
 function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
@@ -504,15 +507,15 @@ function makePKG(){
 		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
-		if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
-			if [ -f "${UserDIR}"/rc.local ]; then
-				echob "copy User rc.local To Package"
-				cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+		if [ -f "${CustomRCFiles}"/custom.rc.local ] || [ -f "${CustomRCFiles}"/custom.rc.shutdown.local ]; then
+			if [ -f "${CustomRCFiles}"/custom.rc.local ]; then
+				echob "copy User custom.rc.local To Package"
+				cp -R "${CustomRCFiles}"/custom.rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
 			fi
 				
-			if [ -f "${UserDIR}"/rc.shutdown.local ]; then
-				echob "copy User rc.shutdown.local To Package"
-				cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+			if [ -f "${CustomRCFiles}"/custom.rc.shutdown.local ]; then
+				echob "copy User custom.rc.shutdown.local To Package"
+				cp -R "${CustomRCFiles}"/custom.rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
 			fi	
 		fi	
 		cd "${CloverDIR}"/CloverPackage
