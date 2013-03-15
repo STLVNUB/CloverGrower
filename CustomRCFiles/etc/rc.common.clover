@@ -18,7 +18,10 @@ systemLogFilename=system.log
 logLineCount=3000
 logUsesTimestamps=No
 EFIMountPoint=/Volumes/EFI
-
+NVRAMFilename=nvram.plist
+NVRAMMountPoint=/tmp/NVRAM
+NVRAMDevice=
+NVRAMPartType=
 bootFlags=$(nvram -p | sed -n 's/^boot-args *//p')
 
 currentDate=$(date "+%Y-%m-%d")
@@ -99,6 +102,7 @@ function findFirstAppleBootDevice {
 #***end rc.local
 
 #***functions from rc.shutdown.local
+
 function mountNVRAMDisk {
     local device="$1"
     local mntpt="$2"

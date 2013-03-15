@@ -16,7 +16,6 @@ declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 declare -r CLOVER_RC_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_RC_DIR="${CLOVER_RC_SCRIPT%/*}"
 source "${CLOVER_RC_DIR}"/rc.common.clover $(basename $CLOVER_RC_SCRIPT)
-
 #
 # Parse boot flags
 #
