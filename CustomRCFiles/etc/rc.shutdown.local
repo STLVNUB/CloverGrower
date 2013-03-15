@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#
+# rc.shutdown.local shutdown script for CLOVER
+# Initial - fassl, slice, STLVNUB
+# Edited  - apianti 2013-01-13
+#         - JrCs    2013-02-01
+#		  - STLVNUB 2013-03-16
+		  
+# Retrieve full path of the command
+declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
+# Retrieve full path of CloverGrower
+declare -r CLOVER_RC_SCRIPT=$(readlink "$CMD" || echo "$CMD")
+declare -r CLOVER_RC_DIR="${CLOVER_RC_SCRIPT%/*}"
+NVRAMDevice=No
+NVRAMMountPoint=
+source "${CLOVER_RC_DIR}"/rc.common.clover $(basename $CLOVER_RC_SCRIPT)
+
+
+#
+# Parse boot flags
+#
+for bootFlag in ${bootFlags} ; do
+   #
+   # Split the key and value
+   #  bootFlagKey will be the key of the boot flag
+   #  bootFlagValue will be the flag value
+   #
+   bootFlagKey=${bootFlag%%=*}
+   bootFlagValue=
+   [[ $bootFlag == *=* ]] && bootFlagValue=${bootFlag#*=}
+
+   # All match are case insensitive
+   case "$bootFlagKey" in
+       NVRamDisk) # NVRamDisk=No|diskXsY
+                  NVRAMDevice="$bootFlagValue" ;;
+   esac
+done
+
+#
+# Check if user requested to not save nvram
+#
+if [[ "$NVRAMDevice" != No ]]; then
+    #
+    # Check if runtime variables emulation is being used
+    #  and if so, always save nvram
+    #
+    if [[ $(nvram -p | grep 'EmuVariableUefiPresent') != "" ]]; then
+        saveNVRAM
+    else
+        #
+        # Otherwise only save nvram to disk if boot from CloverEFI or EDK II
+        #
+        EFIFirmwareVendor=$(LC_ALL=C ioreg -l -pIODeviceTree | \
+         sed -nE 's@.*firmware-vendor.*<([0-9a-fA-F]*)>.*@\1@p' | xxd -r -p)
+
+        case "$EFIFirmwareVendor" in
+            "CLOVER"|"EDK II") saveNVRAM ;;
+        esac
+    fi
+fi
+
+customScript='custom.rc.shutdown.local'
+if [[ -f "/etc/$customScript" ]]; then
+   echo "Found and starting /etc/$customScript"
+   source "/etc/$customScript"
+fi
+
+
+# Local Variables:      #
+# mode: ksh             #
+# tab-width: 4          #
+# indent-tabs-mode: nil #
+# End:                  #
+#
+# vi: set expandtab ts=4 sw=4 sts=4: #

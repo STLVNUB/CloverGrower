@@ -1,0 +1,96 @@
+#!/bin/bash
+
+#
+# rc.local startup script for CLOVER
+#
+# this script store the Clover logs of the last boot
+# and can mount the EFI partition
+#
+# Initial - fassl, slice, STLVNUB
+# Edited  - apianti 2013-01-13
+#         - JrCs    2013-02-01
+#		  - STLVNUB 2013-03-16
+		  
+declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
+# Retrieve full path of CloverGrower
+declare -r CLOVER_RC_SCRIPT=$(readlink "$CMD" || echo "$CMD")
+declare -r CLOVER_RC_DIR="${CLOVER_RC_SCRIPT%/*}"
+source "${CLOVER_RC_DIR}"/rc.common.clover $(basename $CLOVER_RC_SCRIPT)
+
+#
+# Parse boot flags
+#
+for bootFlag in ${bootFlags} ; do
+   #
+   # Split the key and value
+   #  bootFlagKey will be the key of the boot flag
+   #  bootFlagValue will be the flag value
+   #
+   bootFlagKey=${bootFlag%%=*}
+   bootFlagValue=
+   [[ $bootFlag == *=* ]] && bootFlagValue=${bootFlag#*=}
+
+   # All match are case insensitive
+   case "$bootFlagKey" in
+       MountEFI) # MountEFI=yes|diskX
+                 mountEFI "$bootFlagValue" ;;
+       LogLineCount) # LogLineCount=0/N
+                 setLogLineCount "$bootFlagValue" ;;
+       LogLocation) # LogLocation=Path
+                 [[ -n "$bootFlagValue" ]] && \
+                  logLocation="$bootFlagValue" ;;
+       LogEveryBoot) # LogEveryBoot=Yes|No
+                 [[ "$bootFlagValue" == Yes ]] && logUsesTimestamps=yes ;;
+   esac
+
+done
+
+#
+# Change log path if timestamp is needed
+#
+if [[ "${logUsesTimestamps}" == Yes ]]; then
+   	logFilename=boot-${currentDate}-$(echo ${currentTime} | tr ':' '.').log
+else
+	logFilename=boot.log   
+fi
+
+# Define the boot and system log path
+theLogPath="${logLocation}/${logFilename}"
+theSystemLogPath="${logLocation}/${systemLogFilename}"
+
+#
+# Print the current timestamp
+#
+echo "-------------------------------" > ${theLogPath}
+echo "DATE: ${currentDate} TIME: ${currentTime}" >> ${theLogPath}
+echo "-------------------------------" >> ${theLogPath}
+
+#
+# Get the current boot log
+#
+logdump=$(ioreg -lw0 -pIODeviceTree | grep boot-log)
+modified1=${logdump#*boot-log}
+modified2=${modified1#*<}
+echo "${modified2%%>*}" | xxd -r -p >> ${theLogPath}
+echo "Clover boot messages saved in $theLogPath"
+
+# If the line count > 0 trim the system log to line count
+if [[ "$logLineCount" -gt 0 ]]; then
+    (cat "$theSystemLogPath" 2>/dev/null; cat "$theLogPath") | \
+     tail -n $logLineCount > "$theSystemLogPath".tmp
+    mv "$theSystemLogPath".tmp "$theSystemLogPath"
+fi
+
+customScript='custom.rc.local'
+if [[ -f "/etc/$customScript" ]]; then
+   echo "Found and starting /etc/$customScript"
+   source "/etc/$customScript"
+fi
+
+# Local Variables:      #
+# mode: ksh             #
+# tab-width: 4          #
+# indent-tabs-mode: nil #
+# End:                  #
+#
+# vi: set expandtab ts=4 sw=4 sts=4: #
