@@ -99,7 +99,6 @@ workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
 CustomRCFiles="${WORKDIR}"/CustomRCFiles
-etcDIR="${WORKDIR}"/Files/etc
 srcDIR="${WORKDIR}"/src
 edk2DIR="${srcDIR}"/edk2
 CloverDIR="${edk2DIR}"/Clover
@@ -507,6 +506,13 @@ function makePKG(){
 		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
+		if [ -f "${CustomRCFiles}"/etc/rc.common.clover ] && [ ! -f "${CloverDIR}"/CloverPackage/CloverV2/etc/rc.common.clover ]; then # only cp once
+			echob "Backup SVN etc files"
+			mv "${CloverDIR}"/CloverPackage/CloverV2/etc "${CloverDIR}"/CloverPackage/CloverV2/etc_bkup
+			mkdir "${CloverDIR}"/CloverPackage/CloverV2/etc
+			echob "copy STLVNUB rc files To Package"
+			cp -R "${CustomRCFiles}"/etc/rc.* "${CloverDIR}"/CloverPackage/CloverV2/etc
+		fi	
 		if [ -f "${CustomRCFiles}"/custom.rc.local ] || [ -f "${CustomRCFiles}"/custom.rc.shutdown.local ]; then
 			if [ -f "${CustomRCFiles}"/custom.rc.local ]; then
 				echob "copy User custom.rc.local To Package"
