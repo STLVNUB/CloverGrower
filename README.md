@@ -1,4 +1,4 @@
-CloverGrower
+CloverGrower ( with some JrCs Enhancements)
 ============
 
 Simple compile Tool For Clover UEFI/bios OS X Booter
