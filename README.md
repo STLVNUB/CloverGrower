@@ -1,7 +1,7 @@
-CloverGrower ( with some JrCs Enhancements)
+CloverGrower ( with some JrCs Enhancements )
 ============
 
-Simple compile Tool For Clover UEFI/bios OS X Booter
+Simple compile Tool For Clover UEFI/bios OS X Booter, suitable for Novice.
 
 Downloads, Compiles and makes package for Clover UEFI/bios bootloader by slice & company
 
@@ -25,9 +25,9 @@ On subsequent uses you only need to open terminal and type "clover"
 CloverGrower will update any source files from edk2 or Clover and build you a package.
 
 
-CloverGrowerPro
+CloverGrowerPro ( with FULL JrCs Enhancements )
 ===============
 
 This is more suited to the Developer/AdvancedUser.
-CloverGrowerPro with JrCs enhancements at https://github.com/JrCs/CloverGrowerPro.git
+CloverGrowerPro at https://github.com/JrCs/CloverGrowerPro.git
 
