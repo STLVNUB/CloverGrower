@@ -545,20 +545,21 @@ function makePKG(){
 	
 }
 
-# Check versionBuilt
+# Check GCC versionBuilt
 if [[ -f "${filesDIR}/.gccVersion" ]];then
 	gccVers=$(cat "${filesDIR}/.gccVersion")
 else
-	gccVers=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
-	if [[ "${gccVers}" != "${gccVersToUse}" ]]; then
-		echob "error!!"			  # may be possible that this may not work
-		echob "check GCC ${gccVers} is ACTUALLY available"
-		echob "EXPERIMENTAL!!!"
-		tput bel
-		exit
-	fi
+	gccVers="${gccVersToUse}" # gnu site appears to be down, temp fix
+	#gccVers=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
+	#if [[ "${gccVers}" != "${gccVersToUse}" ]]; then
+		#echob "error!!"			  # may be possible that this may not work
+		#echob "check GCC ${gccVers} is ACTUALLY available"
+		#echob "EXPERIMENTAL!!!"
+		#tput bel
+		#exit
+	#fi
+	echo "${gccVers}" >"${filesDIR}/.gccVersion"
 fi
-
 # setup gcc
 gVers=""
 if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
