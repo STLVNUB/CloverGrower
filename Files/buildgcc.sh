@@ -21,9 +21,9 @@
 #
 export BINUTILS_VERSION=${BINUTILS_VERSION:-binutils-2.23.1}
 export GCC_VERSION=${GCC_VERSION:-4.7.2}
-export GMP_VERSION=${GMP_VERSION:-gmp-5.0.5}
-export MPFR_VERSION=${MPFR_VERSION:-mpfr-3.1.1}
-export MPC_VERSION=${MPC_VERSION:-mpc-0.9}
+export GMP_VERSION=${GMP_VERSION:-gmp-5.1.1}
+export MPFR_VERSION=${MPFR_VERSION:-mpfr-3.1.2}
+export MPC_VERSION=${MPC_VERSION:-mpc-1.0.1}
 
 # Change PREFIX if you want gcc and binutils 
 # installed on different place
