@@ -461,9 +461,16 @@ function installToolchain() {
     printf "toolchain will be install in %s\n" $(echob ${TOOLCHAIN})
     echo  "Press any key to start the process..."
     read
+
+    # Get the latest version of buildgcc.sh from clover
+    echob "Checking out last version of buildgcc.sh from clover..."
+    svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/ >/dev/null
+
     echob "Starting CloverGrower Compile Tools process..."
     date
-    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" ./buildgcc.sh -x64 -all # build only x64 because it can compile ia32 too
+    # build only x64 because it can compile ia32 too
+    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+     "$srcDIR"/buildgcc.sh -x64 -all
     tput bel
     cd ..
 }
