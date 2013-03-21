@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="4.9f"
+myV="5.0a"
 gccVersToUse="4.7.2" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
