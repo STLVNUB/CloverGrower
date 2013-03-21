@@ -175,7 +175,7 @@ function getSOURCEFILE() {
         wait
         echob "    svn co $1, done, continuing"
         tput bel
-        echo "${checkoutRevision}" > ${1}/Lvers.txt	# make initial revision txt file
+        echo "${checkoutRevision}" > "${1}"/Lvers.txt	# make initial revision txt file
     else
     	(cd "$1" && svn up >/dev/null)
     	checkit "    Svn up $1" "$2"
@@ -447,30 +447,37 @@ function makePKG(){
 	echob "Work Folder     : $WORKDIR"
 	echob "Available Space : ${workSpaceAvail} MB";echo
 	echo
-	if [[ -d "${CloverDIR}" ]]; then
-		cloverLVers=$(getSvnRevision "${CloverDIR}")
-		if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
-            echob "Clover Update Detected !"
-            cloverUpdate="Yes"
-			echob "*********Clover Build STATS***********"
-			echob "*      local  revision at ${cloverLVers}       *"
-			echob "*      remote revision at ${CloverREV}       *"
-			echob "*      Package Built   =  $built        *"
-			echob "**************************************"
-   			echob "svn changes for $CloverREV"
-			cd "${CloverDIR}"
-       		changesSVN=$(svn log -v -r "$CloverREV")
-       		echob "$changesSVN"
-       		tput bel
-       		cd ..
-    	else
-            echob "No Clover Update found. Current revision: ${cloverLVers}"
-        fi
+	if [[ -f Basetools/Source/C/bin/VfrCompile ]]; then
+		if [[ -d "${CloverDIR}" ]]; then
+			cloverLVers=$(getSvnRevision "${CloverDIR}")
+			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
+            	echob "Clover Update Detected !"
+            	cloverUpdate="Yes"
+				echob "*********Clover Build STATS***********"
+				echob "*      local  revision at ${cloverLVers}       *"
+				echob "*      remote revision at ${CloverREV}       *"
+				echob "*      Package Built   =  $built        *"
+				echob "**************************************"
+   				echob "svn changes for $CloverREV"
+				cd "${CloverDIR}"
+       			changesSVN=$(svn log -v -r "$CloverREV")
+       			echob "$changesSVN"
+       			tput bel
+       			cd ..
+    		else
+            	echob "No Clover Update found. Current revision: ${cloverLVers}"
+        	fi
+    	fi
+    	sleep 3
+    elif [[ -d "${edk2DIR}" && ! -f Basetools/Source/C/VfrCompile ]]; then
+	    	echob "svn edk2 error: DELETE & RETRY"
+	    	rm -rf "${edk2DIR}"
+	else    	
+	      	cloverUpdate="Yes"
     fi
-    sleep 3
     if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echo
-    	echob "Getting SVN Source, Hang ten…"
+    	echob "Getting SVN Source Files, Hang ten…"
     	getSOURCE
    	 	versionToBuild="${CloverREV}"
    	else
