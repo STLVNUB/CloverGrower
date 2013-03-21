@@ -447,7 +447,7 @@ function makePKG(){
 	echob "Work Folder     : $WORKDIR"
 	echob "Available Space : ${workSpaceAvail} MB";echo
 	echo
-	if [[ -f Basetools/Source/C/bin/VfrCompile ]]; then
+	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
 		if [[ -d "${CloverDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
@@ -469,7 +469,7 @@ function makePKG(){
         	fi
     	fi
     	sleep 3
-    elif [[ -d "${edk2DIR}" && ! -f Basetools/Source/C/VfrCompile ]]; then
+    elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile ]]; then
 	    	echob "svn edk2 error: DELETE & RETRY"
 	    	rm -rf "${edk2DIR}"
 	else    	
