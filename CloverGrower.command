@@ -220,7 +220,7 @@ function getSOURCE() {
 		fi	
 	fi   
 	cd "${edk2DIR}"
-	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,but no check for that NOW.
+	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
       	# Remove old edk2 config files
       	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 
