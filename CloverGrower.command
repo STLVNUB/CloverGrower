@@ -451,7 +451,7 @@ function makePKG(){
 			echob "*      remote revision at ${CloverREV}       *" 
 			echob "*      local  revision at ${versionToBuild}       *"
 			if [ "$built" == "Yes" ]; then
-				echob "* Clover_v2_rL${versionToBuild}.pkg ALREADY Made! *"
+				echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made! *"
 				echob "**************************************"
 				return
 			fi
@@ -477,6 +477,7 @@ function makePKG(){
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             	echob "Clover Update Detected !"
             	cloverUpdate="Yes"
+            	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt # update the version
 				echob "*********Clover Build STATS***********"
 				echob "*      local  revision at ${cloverLVers}       *"
 				echob "*      remote revision at ${CloverREV}       *"
@@ -488,9 +489,12 @@ function makePKG(){
        			echob "$changesSVN"
        			tput bel
        			cd ..
+       		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
+       			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
     		else
-            	echob "No Clover Update found. Current revision: ${cloverLVers}"
-        	fi
+            	echob "No Clover Update found."
+            	echob "Current revision: ${cloverLVers}"
+            fi
     	fi
     	sleep 3
     elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile ]]; then
@@ -532,8 +536,8 @@ function makePKG(){
 		echob "Clover revision $cloverVers Compile process took $TTIMEM to complete" 
 	fi
 	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
-	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ]; then # make pkg if not there
-		echob "Making Clover_v2_rL${versionToBuild}.pkg..."
+	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
+		echob "Making Clover_v2_r${versionToBuild}.pkg..."
 		sleep 3
 		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
