@@ -145,18 +145,31 @@ esac
 
 # set up Revisions
 function getREVISIONSClover(){
-    # Clover
-    export CloverREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code)
-    # rEFIt
-    export rEFItREV=$(getSvnRevision svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI)
-    export cloverVers="${CloverREV}:${rEFItREV}" # probably don't need these two, older versions < 3.8 did
+ cloverstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
+export CloverREV="${cloverstats:10}"
+if [ "$1" == "Initial" ]; then
+	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
+fi			
+#rEFIt
+refitstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
+export rEFItREV="${refitstats:18}"
+export cloverVers="${CloverREV}:${rEFItREV}"
+wait
 }
 
 # set up Revisions
 function getREVISIONSedk2(){
-	# EDK2
-	export edk2REV=$(getSvnRevision http://edk2.svn.sourceforge.net/svnroot/edk2)
-    echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update edk2 local revision
+checksvn=`curl -s http://edk2.svn.sourceforge.net/viewvc/edk2/ | grep "Revision"`
+wait
+export edk2REV="${checksvn:53:5}"
+wait
+if [ "$1" == "Initial" ]; then
+	basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
+	basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
+	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
+	wait
+fi
 }
 
 # checkout/update svn
@@ -167,15 +180,14 @@ function getSOURCEFILE() {
         echo  "        Local $1 Folder Not Found.."
         echob "        Making Local ${1} Folder..."
         mkdir "$1"
-        checkoutRevision=$(getSvnRevision "$2")
-        echob "    Checking out Remote $1 revision $checkoutRevision"
-        echo  "    svn co $2"
+		getREVISIONS${1} Initial # flag to write initial revision
+      	echob "    Checking out Remote: $1"
+		echob "               revision: "`cat $1/Lvers.txt`
         svn co "$2" "$1" &>/dev/null &
         echob "    Waiting for $1 svn to finish"
         wait
         echob "    svn co $1, done, continuing"
         tput bel
-        echo "${checkoutRevision}" > "${1}"/Lvers.txt	# make initial revision txt file
     else
     	(cd "$1" && svn up >/dev/null)
     	checkit "    Svn up $1" "$2"
@@ -194,6 +206,18 @@ function getSOURCE() {
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+	    if [ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ] || [ "${cloverUpdate}" == "Yes" ]; then
+			basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
+			basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+			Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
+			if [ "$basetools" -gt "$Lbasetools" ]; then # rebuild tools IF revision has changed
+				echob "    BaseTools @ Revision $basetools"
+				echob "    Updated BaseTools Detected"
+				echob "    Clean EDK II BaseTools";echo
+				make -C "${edk2DIR}"/BaseTools clean
+				wait
+			fi
+		fi	
 	fi   
 	cd "${edk2DIR}"
 	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,but no check for that NOW.
@@ -445,7 +469,7 @@ function makePKG(){
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
 	echob "Building Clover revision:${CloverREV} as $target target";echo
 	echob "Work Folder     : $WORKDIR"
-	echob "Available Space : ${workSpaceAvail} MB";echo
+	echob "Available Space : ${workSpaceAvail} MB"
 	echo
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
 		if [[ -d "${CloverDIR}" ]]; then
@@ -470,13 +494,14 @@ function makePKG(){
     	fi
     	sleep 3
     elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile ]]; then
-	    	echob "svn edk2 error: DELETE & RETRY"
+    		getREVISIONSedk2 "test"
+    		echob "svn edk2 revision: ${edk2REV}"
+    		echob "error!!! DELETE & RETRY"
 	    	rm -rf "${edk2DIR}"
 	else    	
 	      	cloverUpdate="Yes"
     fi
     if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
-    	echo
     	echob "Getting SVN Source Files, Hang ten…"
     	getSOURCE
    	 	versionToBuild="${CloverREV}"
