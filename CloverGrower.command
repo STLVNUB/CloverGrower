@@ -1,6 +1,6 @@
 #!/bin/bash
-myV="5.0b"
-gccVersToUse="4.7.2" # failsafe check
+myV="5.0c"
+gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
@@ -26,6 +26,7 @@ user=$(id -un)
 theBoss=$(id -ur)
 hours=$(get_hours)
 theLink=/usr/local/bin/clover
+useDEFAULT="No"
 if [[ -L "$theShortcut"/CloverGrower.command ]]; then
 	theLink="$theShortcut"/CloverGrower.command
 fi
@@ -136,10 +137,10 @@ theSystem=$(uname -r)
 theSystem="${theSystem:0:2}"
 case "${theSystem}" in
     [0-8]) sysmess="unsupported" ;;
-    9) rootSystem="Leopard" ;;
-    10) rootSystem="Snow Leopard" ;;
-    11) rootSystem="Lion" ;;
-    12)	rootSystem="Mountain Lion" ;;
+    9) export rootSystem="Leopard" ;;
+    10) export rootSystem="Snow Leopard" ;;
+    11) export rootSystem="Lion" ;;
+    12)	export rootSystem="Mountain Lion" ;;
     [13-20]) sysmess="Unknown" ;;
 esac
 
@@ -187,28 +188,36 @@ if [ "$1" == "Initial" ]; then
 fi
 }
 
+function getREVISIONSgcc() {
+	checkgccsvn=`curl -s http://gcc.gnu.org/viewcvs/gcc/ | grep "Revision"`
+	wait
+	export releaseGCC="${checkgccsvn:53:6}"
+	echo $releaseGCC
+}	
+
 # check URL IS IN FACT, ONLINE, fail IF NOT.
 function checkURL {
-	 echob "    Verifying $2 URL"
-	 echob "    $1"
-	 curl -s -o "/dev/null" "$1"
-	 wait
-     if [ $? -ne 0 ] ; then
-         echob "    Error occurred"
-         if [ $? -eq 6 ]; then
-             echob "    Unable to resolve host"
-         fi
-         if [$? -eq 7 ]; then
-             echob "    Unable to connect to host"
-         fi
-         echob "    Appears to be URL Problem"
-         open "$1"
-         exit 1
-     else
-     	     #"    Verifying URL: $1"
+	echob "    Verifying $2 URL"
+	echob "    $1"
+	curl -s -o "/dev/null" "$1"
+	wait
+    if [ $? -ne 0 ] ; then
+        echob "    Error occurred"
+        if [[ "$2" != "gcc" ]]; then
+        	if [ $? -eq 6 ]; then
+            	echob "    Unable to resolve host"
+        	fi
+        	if [$? -eq 7 ]; then
+            	echob "    Unable to connect to host"
+        	fi
+        	echob "    Appears to be URL Problem"
+        	exit 1
+        fi
+        useDEFAULT="Yes"	
+    else
      	echob "    VERIFIED"
      	sleep 3 
-     fi
+    fi
 
 }
 
@@ -226,7 +235,7 @@ function getSOURCEFILE() {
     	(cd "$1" && svn up >/dev/null) &
     fi
 	spinner $!    
-	checkit "  $1"
+	checkit "  SVN $1"
 }
 
 # sets up svn sources
@@ -383,23 +392,23 @@ echob "  CloverTools using gcc $gccVers NOT installed"
 echo ""
 echo "  Enter 'o' to PERMANENTLY install CloverTools to working directory"
 echob "            /opt/local (RECOMMENDED)"
-echo "  Enter 't' to install CloverTools to working directory" 
+echo "  Enter 'c' to install CloverTools to working directory" 
 echob "            $WORKDIR/src/CloverTools"
-echo "  Enter 'p' to PERMANENTLY install CloverTools to working directory"
+echo "  Enter 'u' to PERMANENTLY install CloverTools to working directory"
 echob "            /usr/local"
 echo "  Hit 'return' to EXIT"
 echo "  Type letter and hit <RETURN>: "
 sudoIT="sudo" # install to /opt OR /usr need sudo
 read choose
 case $choose in
-	t|T)
+	c|C)
 	CG_PREFIX="${WORKDIR}"/src/CloverTools
 	sudoIT="sh" # if install to above NO need to sudo ( well hopefully)
 	;;
 	o|O)
 	CG_PREFIX="/opt/local"
 	;;
-	p|P)
+	u|U)
 	CG_PREFIX="/usr/local"
 	;;
 	*)
@@ -421,8 +430,8 @@ echo "  $sudoIT Files/buildgcc -all ${CG_PREFIX} $gccVers"
 echob "  Starting CloverGrower Compile Tools process..." 
 STARTM=$(date -u "+%s")
 date
-"$sudoIT" ./buildgcc.sh -all "${CG_PREFIX}" "$gccVers" #& # build all to CG_PREFIX with gccVers
-wait
+("$sudoIT" ./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+wait    
 tput bel
 cd ..
 if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
@@ -504,9 +513,13 @@ function makePKG(){
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
-	echob "Building Clover revision:${CloverREV} as $target target";echo
-	echob "Work Folder     : $WORKDIR"
-	echob "Available Space : ${workSpaceAvail} MB"
+	echob "Build  Stats:-"
+	echob "             Clover  : revision: ${CloverREV}"
+	echob "             Target  : $target"
+	echob "             Compiler: GCC $gccVers";echo
+	echob "Folder Stats:-"
+	echob "             Work Folder     : $WORKDIR"
+	echob "             Available Space : ${workSpaceAvail} MB"
 	echo
 	say "Good $hours $user"
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
@@ -619,22 +632,36 @@ function makePKG(){
 	fi
 	
 }
+if [[ ! -f "${filesDIR}/.gccVersion" || "$(date +%a)" == "Mon" ]]; then
+	echob "Auto Checking Gnu GCC for updates"
+	checkURL "http://gcc.gnu.org/index.html" "gcc" # check website exists and online, use DEFAULT if fail.
+	if [[ "$useDEFAULT" == "No" ]]; then
+		gccVersLatest=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
+		if [[ "${gccVersLatest}" != "${gccVersToUse}" ]]; then
+			echob "    Updated GCC Detected [${gccVersLatest}]"			
+			echob "    This is EXPERIMENTAL!!!"
+			echob "    Checking Updated URL has revision ${gccVersLatest}"
+			checkexists=`curl -s http://mirrors.kernel.org/gnu/gcc/gcc-${gccVersLatest}/ | grep '404'`
+			if [[ "${checkexists:7:13}" == "404 Not Found" ]]; then
+				echob "ERROR:"
+				echob "     GCC Version: ${gccVersLatest} NOT AVAILABLE YET"
+				echob "     Will Use DEFAULT GCC ${gccVersToUse} instead"
+				gccVersLatest="${gccVersToUse}"
+			else
+				echob "OK, Will Use Updated GCC ${gccVersLatest}"
+				if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
+					rm -rf "${filesDIR}"/.CloverTools
+					rm -rf "${TOOLCHAIN}"
+				fi
+			fi	
+		fi
+		echo "${gccVersLatest}" >"${filesDIR}/.gccVersion"
+	else
+		echo "${gccVersToUse}" >"${filesDIR}/.gccVersion"
+	fi
+fi		
+gccVers=$(cat "${filesDIR}/.gccVersion")
 
-# Check GCC versionBuilt
-if [[ -f "${filesDIR}/.gccVersion" ]];then
-	gccVers=$(cat "${filesDIR}/.gccVersion")
-else
-	gccVers="${gccVersToUse}" # gnu site appears to be down, temp fix
-	#gccVers=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
-	#if [[ "${gccVers}" != "${gccVersToUse}" ]]; then
-		#echob "error!!"			  # may be possible that this may not work
-		#echob "check GCC ${gccVers} is ACTUALLY available"
-		#echob "EXPERIMENTAL!!!"
-		#tput bel
-		#exit
-	#fi
-	echo "${gccVers}" >"${filesDIR}/.gccVersion"
-fi
 # setup gcc
 gVers=""
 if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
@@ -649,7 +676,7 @@ if [[ "${gVers}" == "" || ! -x "${TOOLCHAIN}"/ia32/gcc || ! -x "${TOOLCHAIN}"/x6
     [[ -n "${CG_PREFIX}" ]] && echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
 fi
 
-export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC47
+export mygccVers="47" #"${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
