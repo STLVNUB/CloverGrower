@@ -673,7 +673,7 @@ if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
 	fi
 fi
 
-if [[ "${gVers}" == "" || ! -x "${TOOLCHAIN}"/ia32/gcc || ! -x "${TOOLCHAIN}"/x64/gcc ]];then
+if [[ "${gVers}" == "" || ! -x "${TOOLCHAIN}"/x64/gcc ]];then
     checkGCC
     [[ -n "${CG_PREFIX}" ]] && echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
 fi
