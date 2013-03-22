@@ -464,7 +464,7 @@ function installToolchain() {
 
     # Get the latest version of buildgcc.sh from clover
     echob "Checking out last version of buildgcc.sh from clover..."
-    svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/ >/dev/null
+    svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/buildgcc.sh >/dev/null
 
     echob "Starting CloverGrower Compile Tools process..."
     date
