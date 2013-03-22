@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0a"
+myV="5.0b"
 gccVersToUse="4.7.2" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -143,9 +143,25 @@ case "${theSystem}" in
     [13-20]) sysmess="Unknown" ;;
 esac
 
+# simple spinner
+function spinner()
+{
+    local pid=$1
+    local delay=0.25
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
 # set up Revisions
 function getREVISIONSClover(){
- cloverstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
+cloverstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
 export CloverREV="${cloverstats:10}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
@@ -153,7 +169,6 @@ fi
 #rEFIt
 refitstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
 export rEFItREV="${refitstats:18}"
-export cloverVers="${CloverREV}:${rEFItREV}"
 wait
 }
 
@@ -172,32 +187,52 @@ if [ "$1" == "Initial" ]; then
 fi
 }
 
+# check URL IS IN FACT, ONLINE, fail IF NOT.
+function checkURL {
+	 echob "    Verifying $2 URL"
+	 echob "    $1"
+	 curl -s -o "/dev/null" "$1"
+	 wait
+     if [ $? -ne 0 ] ; then
+         echob "    Error occurred"
+         if [ $? -eq 6 ]; then
+             echob "    Unable to resolve host"
+         fi
+         if [$? -eq 7 ]; then
+             echob "    Unable to connect to host"
+         fi
+         echob "    Appears to be URL Problem"
+         open "$1"
+         exit 1
+     else
+     	     #"    Verifying URL: $1"
+     	echob "    VERIFIED"
+     	sleep 3 
+     fi
+
+}
+
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
-    if [ ! -d "$1" ]; then
-        echob "    ERROR:"
-        echo  "        Local $1 Folder Not Found.."
-        echob "        Making Local ${1} Folder..."
+	checkURL "$2" "$1"
+	if [ ! -d "$1" ]; then
         mkdir "$1"
 		getREVISIONS${1} Initial # flag to write initial revision
-      	echob "    Checking out Remote: $1"
-		echob "               revision: "`cat $1/Lvers.txt`
-        svn co "$2" "$1" &>/dev/null &
-        echob "    Waiting for $1 svn to finish"
-        wait
-        echob "    svn co $1, done, continuing"
-        tput bel
-    else
-    	(cd "$1" && svn up >/dev/null)
-    	checkit "    Svn up $1" "$2"
-    fi	
+      	echo -n "    Check out $1  "
+		(svn co "$2" "$1" &>/dev/null) & 
+	else
+    	echo -n "    Auto Update $1  "
+    	(cd "$1" && svn up >/dev/null) &
+    fi
+	spinner $!    
+	checkit "  $1"
 }
 
 # sets up svn sources
 function getSOURCE() {
     if [ ! -d "${srcDIR}" ]; then
-        echob "  Make src Folder.."
+        echob "    Make src Folder.."
         mkdir "${srcDIR}"
     fi
    
@@ -220,16 +255,17 @@ function getSOURCE() {
 		fi	
 	fi   
 	cd "${edk2DIR}"
-	if [[ ! -f Basetools/Source/C/bin/VfrCompile ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
+	if [[ ! -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile  && -f "${edk2DIR}"/edksetup.sh ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
       	# Remove old edk2 config files
       	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 
-       # Create new default edk2 files in edk2/Conf
-      	./edksetup.sh >/dev/null
+       	# Create new default edk2 files in edk2/Conf
+      	"${edk2DIR}"/edksetup.sh >/dev/null
       	echob "    Make edk2 BaseTools.."
-        make -C BaseTools &>/dev/null
-   	fi
-
+        make -C "${edk2DIR}"/BaseTools &>/dev/null
+        wait
+        checkit "    Basetools Compile"
+    fi
 	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
     if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then # only needs to be done ONCE.
@@ -242,7 +278,7 @@ function getSOURCE() {
        # Patch edk2/Conf/tools_def.txt for GCC
         sed -i'.orig' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" \
          "${edk2DIR}/Conf/tools_def.txt"
-        checkit "Patching edk2/Conf/tools_def.txt"
+        checkit "    Patching edk2/Conf/tools_def.txt"
     fi
     echo
 }
@@ -411,7 +447,7 @@ cloverLocal=${cloverLocal:=''}
 echob "*******************************************"
 echob "$buildMess"
 echob "*    Revisions:- edk2: $edk2Local              *"
-echob "*              Clover: $cloverVers            *"
+echob "*              Clover: $CloverREV            *"
 echob "*    Using Flags: gcc$mygccVers ${targetBitsMess} $style  *"
 echob "*******************************************"
 STARTT=$(date -j "+%H:%M")
@@ -465,12 +501,14 @@ function makePKG(){
 	echob "*      Welcome To CloverGrower V$myV       *"
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
-	echob "********************************************";echo
+	echob "********************************************"
+	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
 	echob "Building Clover revision:${CloverREV} as $target target";echo
 	echob "Work Folder     : $WORKDIR"
 	echob "Available Space : ${workSpaceAvail} MB"
 	echo
+	say "Good $hours $user"
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
 		if [[ -d "${CloverDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
@@ -497,7 +535,7 @@ function makePKG(){
             fi
     	fi
     	sleep 3
-    elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile ]]; then
+    elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile && ! -f "${edk2DIR}"/edksetup.sh ]]; then
     		getREVISIONSedk2 "test"
     		echob "svn edk2 revision: ${edk2REV}"
     		echob "error!!! DELETE & RETRY"
@@ -533,7 +571,7 @@ function makePKG(){
 		else
 			TTIMEM=$(printf "%ds\n" $((RUNTIMEM)))
 		fi	
-		echob "Clover revision $cloverVers Compile process took $TTIMEM to complete" 
+		echob "Clover revision $CloverREV Compile process took $TTIMEM to complete" 
 	fi
 	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
@@ -576,6 +614,7 @@ function makePKG(){
 		rm -rf "${builtPKGDIR}"/"${versionToBuild}"/package
 		echob "open builtPKG/${versionToBuild}."
 		open "${builtPKGDIR}"/"${versionToBuild}"
+		say "Your Package ${versionToBuild} has been grown"
 		tput bel
 	fi
 	
@@ -615,4 +654,5 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-echob "Good $hours $user" 
+echob "Good $hours $user, Thanks for using CloverGrower" 
+say "Good $hours $user, Thanks for using CloverGrower" 
