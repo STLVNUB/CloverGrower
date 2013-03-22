@@ -329,21 +329,23 @@ function cleanRUN(){
 function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
-    DoLinks "ia32" "i686-linux-gnu"
+    if [[ "$target" != "X64" ]]; then
+    	DoLinks "ia32" "i686-linux-gnu"
+    fi	
     DoLinks "x64"  "x86_64-linux-gnu"
 }
 
 #makes 'new' syslinks
 function DoLinks(){
     ARCH="$1"
-    TARGET="$2"
+    TARGETARCH="$2"
     if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
         mkdir -p "${TOOLCHAIN}/${ARCH}"
     fi
-    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGET-gcc" ]]; then # need to do this
+    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGETARCH-gcc" ]]; then # need to do this
         echo "  Fixing your $gccVers ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
-            ln -sf "${CG_PREFIX}"/bin/$TARGET-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
+            ln -sf "${CG_PREFIX}"/bin/$TARGETARCH-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
         done
         echo "  Finished: Fixing"
         echo "  symlinks are in: ${TOOLCHAIN}/$ARCH"
