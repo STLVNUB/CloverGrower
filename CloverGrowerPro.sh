@@ -330,6 +330,7 @@ function checkEnv() {
     checkXCode
     # Check for svn
     [[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
+    # Check the toolchain
     checkToolchain
 }
 
@@ -377,10 +378,6 @@ function getSOURCEFILE() {
 
 # sets up svn sources
 function getSOURCE() {
-    if [ ! -d "${srcDIR}" ]; then
-        echob "  Make src Folder.."
-        mkdir "${srcDIR}"
-    fi
     if [ ! -d "${EDK2DIR}"/Build/CloverX64 ] && [ ! -d "${EDK2DIR}"/Build/CloverIA32 ]; then
         buildMode=">CleanAll< Build  "
     fi
@@ -461,6 +458,12 @@ function installToolchain() {
     printf "toolchain will be install in %s\n" $(echob ${TOOLCHAIN})
     echo  "Press any key to start the process..."
     read
+
+    # Check that some directories exists
+    if [ ! -d "${srcDIR}" ]; then
+        echob "Make src Folder.."
+        mkdir "${srcDIR}"
+    fi
 
     # Get the latest version of buildgcc.sh from clover
     echob "Checking out last version of buildgcc.sh from clover..."
