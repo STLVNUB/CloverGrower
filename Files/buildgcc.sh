@@ -99,7 +99,6 @@ echo
 # simple spinner
 function spinner()
 {
-	echo -n "Downloading "
     local pid=$1
     local delay=0.25
     local spinstr='|/-\'
@@ -113,27 +112,17 @@ function spinner()
     printf "    \b\b\b\b"
 }
 
-fnDownloadBinutils ()
-# Function: Download Binutils source
-{
-    cd $DIR_DOWNLOADS
-}
-
-fnDownloadGCC ()
-# Function: Download GCC source
-{
-    cd $DIR_DOWNLOADS
-}
 
 fnDownloadLibs ()
 {
     cd $DIR_DOWNLOADS
-    [ ! -f ${DIR_DOWNLOADS}/${GMP_VERSION}.tar.bz2 ] && echo "Status: ${GMP_VERSION} not found." && curl -s --remote-name http://mirror.aarnet.edu.au/pub/gnu/gmp//${GMP_VERSION}.tar.bz2 &
-    [ ! -f ${DIR_DOWNLOADS}/${MPFR_VERSION}.tar.bz2 ] && echo "Status: ${MPFR_VERSION} not found." && curl -s --remote-name http://mirror.aarnet.edu.au/pub/gnu/mpfr/${MPFR_VERSION}.tar.bz2 &
-    [ ! -f ${DIR_DOWNLOADS}/${MPC_VERSION}.tar.gz ] && echo "Status: ${MPC_VERSION} not found." && curl -s --remote-name http://www.multiprecision.org/mpc/download/${MPC_VERSION}.tar.gz &
-    [ ! -f ${DIR_DOWNLOADS}/${BINUTILS_VERSION}.tar.bz2 ] && echo "Status: ${BINUTILS_VERSION} not found." && curl -s --remote-name http://mirror.aarnet.edu.au/pub/gnu/binutils/${BINUTILS_VERSION}.tar.bz2 &
-    [ ! -f ${DIR_DOWNLOADS}/gcc-${GCC_VERSION}.tar.bz2 ] && echo "Status: gcc-${GCC_VERSION} not found." && curl -s --remote-name http://mirrors.kernel.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.bz2 & pidgcc=$!
-    spinner $pidgcc
+    [ ! -f ${DIR_DOWNLOADS}/${GMP_VERSION}.tar.bz2 ] && echo "Status: ${GMP_VERSION} not found." && curl --remote-name http://mirror.aarnet.edu.au/pub/gnu/gmp//${GMP_VERSION}.tar.bz2
+    [ ! -f ${DIR_DOWNLOADS}/${MPFR_VERSION}.tar.bz2 ] && echo "Status: ${MPFR_VERSION} not found." && curl --remote-name http://mirror.aarnet.edu.au/pub/gnu/mpfr/${MPFR_VERSION}.tar.bz2
+    [ ! -f ${DIR_DOWNLOADS}/${MPC_VERSION}.tar.gz ] && echo "Status: ${MPC_VERSION} not found." && curl --remote-name http://www.multiprecision.org/mpc/download/${MPC_VERSION}.tar.gz
+    [ ! -f ${DIR_DOWNLOADS}/${BINUTILS_VERSION}.tar.bz2 ] && echo "Status: ${BINUTILS_VERSION} not found." && curl --remote-name http://mirror.aarnet.edu.au/pub/gnu/binutils/${BINUTILS_VERSION}.tar.bz2
+    [ ! -f ${DIR_DOWNLOADS}/gcc-${GCC_VERSION}.tar.bz2 ] && echo "Status: gcc-${GCC_VERSION} not found." && curl --remote-name http://mirrors.kernel.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.bz2 & pidgcc=$!
+    wait
+    echo "Done!"
 }
 
 
