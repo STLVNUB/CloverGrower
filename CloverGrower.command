@@ -121,7 +121,6 @@ theBuiltVersion=""
 buildClover=0
 
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
-[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
 
 # Check for svn
 [[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
@@ -265,7 +264,7 @@ function getSOURCE() {
     fi
    
     # Don't update edk2 if no Clover updates
-    if [[ "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" || "$gccUpdated" == "Yes" ]]; then
+    if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" || "$gccUpdated" == "Yes" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
@@ -277,10 +276,10 @@ function getSOURCE() {
 				Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
 			    if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
 			    	echob "    BaseTools @ Revision $basetools"
-					echob "    Updated BaseTools Detected"			
+					echob "    Updated BaseTools Detected"
 				fi
-			fi		
-			if [[ "$gccUpdated" == "Yes"	]]; then  
+			fi
+			if [[ "$gccUpdated" == "Yes" ]]; then  
 				echob "    GCC Updated"
 			fi		
 			echo -n "    Clean EDK II BaseTools "
@@ -602,7 +601,7 @@ function makePKG(){
         wait
         checkit "    Patching Conf/tools_def.txt"
     fi
-    echob "Ready to build Clover $versionToBuild, Using Gcc $gccVers"
+    echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 3
     autoBuild "$1"
     tput bel
@@ -632,29 +631,12 @@ function makePKG(){
 		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
-		if [ -f "${CustomRCFiles}"/etc/rc.common.clover ] && [ ! -f "${CloverDIR}"/CloverPackage/CloverV2/etc/rc.common.clover ]; then # only cp once
-			echob "Backup SVN etc files"
-			mv "${CloverDIR}"/CloverPackage/CloverV2/etc "${CloverDIR}"/CloverPackage/CloverV2/etc_bkup
-			mkdir "${CloverDIR}"/CloverPackage/CloverV2/etc
-			echob "copy STLVNUB rc files To Package"
-			cp -R "${CustomRCFiles}"/etc/rc.* "${CloverDIR}"/CloverPackage/CloverV2/etc
-		fi	
-		if [ -f "${CustomRCFiles}"/custom.rc.local ] || [ -f "${CustomRCFiles}"/custom.rc.shutdown.local ]; then
-			if [ -f "${CustomRCFiles}"/custom.rc.local ]; then
-				echob "copy User custom.rc.local To Package"
-				cp -R "${CustomRCFiles}"/custom.rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-			fi
-				
-			if [ -f "${CustomRCFiles}"/custom.rc.shutdown.local ]; then
-				echob "copy User custom.rc.shutdown.local To Package"
-				cp -R "${CustomRCFiles}"/custom.rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-			fi	
-		fi	
 		cd "${CloverDIR}"/CloverPackage
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 		./makepkg "No"
 		wait
 		echob "mkdir buildPKG/${versionToBuild}."
+		[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
 		mkdir "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
