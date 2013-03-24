@@ -1,7 +1,7 @@
 #!/bin/bash
 myV="5.0d"
 checkDay="Mon"
-gccVersToUse="4.7.2" # failsafe check
+gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
