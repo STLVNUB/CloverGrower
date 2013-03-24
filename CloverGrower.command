@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0d"
+myV="5.0e"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -214,6 +214,7 @@ function getREVISIONSgcc() {
 
 # check URL IS IN FACT, ONLINE, fail IF NOT.
 function checkURL {
+	[[ "$2" == "gcc" ]] && echob "$3"
 	echob "    Verifying $2 URL"
 	echob "    $1"
 	curl -s -o "/dev/null" "$1"
@@ -366,8 +367,7 @@ function DoLinks(){
 function checkGCC(){
     export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
     gccDIRS="/usr/local /opt/local $WORKDIR/src/CloverTools" # user has 3 choices for gcc install
-    echob "Entering function checkGCC:"
-    echo "  Checking gcc $gccVers INSTALL status"
+    echob "Checking gcc $gccVers INSTALL status"
     for theDIRS in $gccDIRS; do # check install dirs for gcc
         CG_PREFIX="${theDIRS}" #else
         echo "  Checking ${theDIRS}"
@@ -400,16 +400,16 @@ function checkGCC(){
 }
 
 function installGCC(){
-echob "  CloverTools using gcc $gccVers NOT installed"
-echo ""
-echo "  Enter 'o' to PERMANENTLY install CloverTools to working directory"
-echob "            /opt/local (RECOMMENDED)"
-echo "  Enter 'c' to install CloverTools to working directory" 
-echob "            $WORKDIR/src/CloverTools"
-echo "  Enter 'u' to PERMANENTLY install CloverTools to working directory"
-echob "            /usr/local"
-echo "  Hit 'return' to EXIT"
-echo "  Type letter and hit <RETURN>: "
+echob "CloverTools using gcc $gccVers NOT installed";echo
+echob "Install CloverTools using gcc $gccVers to folder"
+echo "  Enter 'o'"
+echob "  to PERMANENTLY install to: /opt/local (RECOMMENDED)"
+echo "  Enter 'c'"
+echob "  to install to: $WORKDIR/src/CloverTools"
+echo "  Enter 'u'"
+echob "  to PERMANENTLY install to: /usr/local"
+echob "  Hit 'return' to EXIT"
+echob "  Type letter and hit <RETURN>: "
 sudoIT="sudo" # install to /opt OR /usr need sudo
 read choose
 case $choose in
@@ -653,8 +653,7 @@ function makePKG(){
 	
 }
 if [[ ! -f "${filesDIR}/.gccVersion" || "$(date +%a)" == "$checkDay" ]]; then
-	echob "Auto Checking Gnu GCC for updates"
-	checkURL "http://gcc.gnu.org/index.html" "gcc" # check website exists and online, use DEFAULT if fail.
+	checkURL "http://gcc.gnu.org/index.html" "gcc" "Auto Checking Gnu GCC for updates" # check website exists and online, use DEFAULT if fail.
 	if [[ "$useDEFAULT" == "No" ]]; then
 		gccVersLatest=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
 		if [[ "${gccVersLatest}" != "${gccVersToUse}" ]]; then
@@ -674,7 +673,9 @@ if [[ ! -f "${filesDIR}/.gccVersion" || "$(date +%a)" == "$checkDay" ]]; then
 					rm -rf "${TOOLCHAIN}"
 				fi
 				gccUpdated="Yes"
-			fi	
+			fi
+		else
+			echob "No Updates Found..."		
 		fi
 		echo "${gccVersLatest}" >"${filesDIR}/.gccVersion"
 	else
