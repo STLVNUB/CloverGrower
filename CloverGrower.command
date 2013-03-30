@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0f"
+myV="5.0g"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -576,14 +576,16 @@ function makePKG(){
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
     if [[ ! -f "${CloverDIR}/ebuild.sh.orig" ]]; then
-         # Patch ebuild.sh and 
+         # Patch ebuild.sh
+       echob "    Patching ebuild to GCC${mygccVers}"
        sed -i'.orig' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
          "${CloverDIR}/ebuild.sh"
        wait
        checkit "    Patched Clover ebuild.sh"
     fi
     if [[ ! -f "${rEFItDIR}/build32.sh.orig" ]]; then
-         # Patch build32.sh and 
+         # Patch build32.sh
+       echob "    Patching rEFIt/build32.sh to GCC${mygccVers}"
        sed -i'.orig' -e "s!TARGET_TOOLS=GCC47!TARGET_TOOLS=GCC${mygccVers}!g" -e "s!RELEASE_GCC47!RELEASE_GCC${mygccVers}!" "${rEFItDIR}/build32.sh"
        wait
        checkit "    Patched rEFIt build32.sh"
@@ -599,6 +601,7 @@ function makePKG(){
         cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
 
        # Patch edk2/Conf/tools_def.txt for GCC
+       	echob "Patching tools_def.txt to GCC${mygccVers}"
         sed -i'.orig' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
         "${edk2DIR}"/Conf/tools_def.txt
         wait

@@ -289,11 +289,11 @@ case "$1" in
 fnHelp && exit
 ;;
 '-all')
-if [[ "$rootSystem" == "Leopard" ]]; then
+if [[ "$myArch" == "i386" ]]; then
 	fnArchIA32
-	fnALL
+else	
+	fnArchX64
 fi	
-fnArchX64
 fnALL
 ;;
 *)
