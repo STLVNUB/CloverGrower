@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0e"
+myV="5.0f"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -15,12 +15,12 @@ theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 export myArch=`uname -m`
-if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then 
-	target="X64"
+if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
+	target="X64/IA32"
 elif [[ "$myArch" == "i386" ]]; then
 	target="IA32"
 else		
-	target="X64/IA32"
+	target="X64"
 fi
 if [[ "$myArch" == "i386" ]]; then
 	archBit='i686'
@@ -278,19 +278,16 @@ function getSOURCE() {
 			    if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
 			    	echob "    BaseTools @ Revision $basetools"
 					echob "    Updated BaseTools Detected"
-				fi
-			fi
-			if [[ "$gccUpdated" == "Yes" ]]; then  
-				echob "    GCC Updated"
-			fi		
-			echo -n "    Clean EDK II BaseTools "
-			make -C "${edk2DIR}"/BaseTools clean >/dev/null
-			wait
+					echo -n "    Clean EDK II BaseTools "
+					make -C "${edk2DIR}"/BaseTools clean >/dev/null
+					wait
+				fi								
+			fi	
 		fi	
 	fi
 	cd "${edk2DIR}"
 	if [[ ! -f ./Basetools/Source/C/bin/VfrCompile  && -f ./edksetup.sh ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
-      	echo -n "Make edk2 BaseTools.. "
+      	echo -n "    Make edk2 BaseTools.. "
         make -C "${edk2DIR}"/BaseTools &>/dev/null &
         spinner $!
         checkit "Basetools Compile"
@@ -312,7 +309,7 @@ function cleanRUN(){
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
 	if [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 ia32'	
+		archBits='x64 mc ia32'	
 	elif [[ "$myArch" == "i386" ]]; then
 		archBits='ia32'
 	else
@@ -583,7 +580,13 @@ function makePKG(){
        sed -i'.orig' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
          "${CloverDIR}/ebuild.sh"
        wait
-       checkit "    Patching ebuild.sh"
+       checkit "    Patched Clover ebuild.sh"
+    fi
+    if [[ ! -f "${rEFItDIR}/build32.sh.orig" ]]; then
+         # Patch build32.sh and 
+       sed -i'.orig' -e "s!TARGET_TOOLS=GCC47!TARGET_TOOLS=GCC${mygccVers}!g" -e "s!RELEASE_GCC47!RELEASE_GCC${mygccVers}!" "${rEFItDIR}/build32.sh"
+       wait
+       checkit "    Patched rEFIt build32.sh"
     fi
     if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.orig ]]; then
     	# Remove old edk2 config files
@@ -599,7 +602,7 @@ function makePKG(){
         sed -i'.orig' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
         "${edk2DIR}"/Conf/tools_def.txt
         wait
-        checkit "    Patching Conf/tools_def.txt"
+        checkit "    Patched edk2 Conf/tools_def.txt"
     fi
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 3
@@ -632,6 +635,12 @@ function makePKG(){
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
 		cd "${CloverDIR}"/CloverPackage
+		#if [[ ! -f "${CloverDIR}"/CloverPackage/package/buildpkg.sh.orig ]]; then
+         	# Patch buildpkg.sh 
+       		#sed -i'.orig' -e "s!add_ia32=0!add_ia32=1!g" "${CloverDIR}"/CloverPackage/package/buildpkg.sh
+       		#wait
+       		#checkit "    Patched Clover buildpkg.sh"
+    	#fi
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 		./makepkg "No"
 		wait
