@@ -18,9 +18,9 @@ Unix:
 Make sure you have Xcode Command Line Tools installed. Won't work without it.
 
 Unzip and run CloverGrower.command, you only need to do this ONCE.
-CloverGrower will download all sources, GCC4.7.2, edk2 and Clover.
+CloverGrower will download all sources, GCC4.8.0 ( will use latest version), edk2 and Clover.
 First build will take some time as it needs to compile GCC4.8.0, 
-( I like to use latest version) then it builds edk2 BaseTools and then compiles Clover. 
+then it builds edk2 BaseTools and then compiles Clover. 
 
 On subsequent uses you only need to open terminal and type "clover"
 CloverGrower will update any source files from edk2 or Clover and build you a package.
