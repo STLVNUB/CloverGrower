@@ -12,3 +12,6 @@ builtPKG/
 src/
 Toolchain/
 EFI/
+Clover_ovmf-qemu/
+qemu/
+GCC48.rb
