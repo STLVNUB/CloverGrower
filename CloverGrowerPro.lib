@@ -219,7 +219,7 @@ function update_git_svn_repository() {
         return
     fi
     # Check if we have pending commits
-    local pending=$(git diff-index --name-only HEAD)
+    local pending=$(git update-index --refresh && git diff-index --name-only HEAD)
     # Check if we have untracked files
     #local untracked=$(git ls-files :/ --exclude-standard --others)
     if [[ -z "$pending" ]];then
