@@ -242,6 +242,7 @@ rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${EDK2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
+lastModifiedFile="$filesDIR"/.last_modified
 theBuiltVersion=""
 
 # Some Flags
@@ -334,6 +335,14 @@ function checkEnv() {
     checkToolchain
 }
 
+function getLastModifiedSource() {
+    find "$CloverDIR"                                                                             \
+     -type d \( -path '*/.svn' -o -path '*/.git' -o -path '*/CloverPackage/CloverV2' \) -prune -o \
+     -type f -print0 | xargs -0 stat -f "%m %N" |                                                 \
+     egrep -v 'vers.txt|Version.h|.DS_Store|\.efi$' | sort -n | tail -1 |                         \
+     cut -f1 -d' ' # ' fix xemacs fontification
+}
+
 # checkout/update svn
 # $1=name $2=Local folder, $3=svn Remote url
 # return code:
@@ -412,7 +421,6 @@ function getSOURCE() {
     cd "${EDK2DIR}"
     getSOURCEFILE Clover "$CloverDIR" "$CLOVERSVNURL"
     buildClover=$?
-
     echo
 }
 
@@ -486,10 +494,12 @@ autoBuild(){
         local cleanMode=""
         buildMode=">>>>New<<<< Build "
         local edk2LocalRev=$(getSvnRevision "$EDK2DIR")
+        local buildVersioncolor='green'
+        [[ "$CLOVER_LOCAL_REV" -ne "$CLOVER_REMOTE_REV" ]] && buildVersioncolor='yellow'
         echob "*******************************************"
         echob "$buildMess"
         echob "$(printf '*    Revisions:   %s: %-29s%s\n' $(sayColor info 'edk2') $(sayColor green $edk2LocalRev) $(echob '*'))"
-        echob "$(printf '*               %s: %-29s%s\n' $(sayColor info 'Clover') $(sayColor green $versionToBuild) $(echob '*'))"
+        echob "$(printf '*               %s: %-29s%s\n' $(sayColor info 'Clover') $(sayColor $buildVersioncolor $versionToBuild) $(echob '*'))"
         local IFS=
         local flags="$mygccVers $theARCHS $style"
         echob "$(printf '*    Using Flags: gcc%-21s*\n' $flags)"
@@ -605,6 +615,7 @@ function makePKG(){
         echob "Getting SVN Source, Hang ten…"
         getSOURCE
         CLOVER_LOCAL_REV=$(getSvnRevision "${CloverDIR}") # Update
+        versionToBuild=$CLOVER_LOCAL_REV
     fi
 
     if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" ]]; then
@@ -624,8 +635,12 @@ function makePKG(){
         checkit "Copy Files/HFSPlus Clover/HFSPlus"
     fi
 
+    # Check last modified file
+    local last_timestamp=$(getLastModifiedSource)
+    local last_save_timestamp=$(cat "$lastModifiedFile" 2>/dev/null || echo '0')
+
     # If not already built force Clover build
-    if [[ "$built" == "No" ]]; then
+    if [[ "$built" == "No" && "$last_timestamp" -ne "$last_save_timestamp" ]]; then
         printf "%s %s\n" "$(echob 'No build already done.')" \
          "$(sayColor info 'Forcing Clover build...')"
         echo
@@ -633,8 +648,9 @@ function makePKG(){
     fi
 
     if [[ "$buildClover" -eq 1 ]]; then
-        echob "Ready to build Clover $CLOVER_LOCAL_REV, Using Gcc $gccVersToUse"
+        echob "Ready to build Clover $versionToBuild, Using Gcc $gccVersToUse"
         autoBuild "$1"
+        echo "$last_timestamp" > "$lastModifiedFile"
     fi
 
 	if [ "$MAKE_PACKAGE" -eq 1 ]; then

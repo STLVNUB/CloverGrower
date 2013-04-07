@@ -244,6 +244,7 @@ function update_git_svn_repository() {
             printf "    %s %s ...\n" "$(sayColor red 'Resetting branch to revision')" "$(sayColor yellow $forcerevision)"
         fi
         LC_ALL=C git reset --hard "$sha1" >/dev/null
+        return 0
     else
         # git svn fetch --all | grep '^r'
         echo
@@ -253,6 +254,7 @@ function update_git_svn_repository() {
         tput bel
         read
     fi
+    return 1
 }
 
 function update_svn_repository() {
@@ -262,6 +264,7 @@ function update_svn_repository() {
     local pending=$(svn status | sed -n 's/^[AM] *//p')
     if [[ -z "$pending" ]];then
         svn up $svn_option >/dev/null
+        return 0
     else
         echo
         echob "Local file(s) needs update:"
@@ -270,6 +273,7 @@ function update_svn_repository() {
         tput bel
         read
     fi
+    return 1
 }
 
 # Function that update an svn or git-svn local repository
@@ -289,6 +293,7 @@ function update_repository() {
            exit 1
            ;;
     esac
+    return 0
 }
 
 # Local Variables:      #
