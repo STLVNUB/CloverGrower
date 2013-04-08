@@ -248,13 +248,12 @@ function getSOURCEFILE() {
 		getREVISIONS${1} Initial # flag to write initial revision
 		wait
       	echo -n "    Check out $1  "
-		(svn co "$2" "$1" --non-interactive --trust-server-cert &>/dev/null) & 
+		(svn co "$2" "$1" --non-interactive --trust-server-cert >/dev/null) &
 	else
     	echo -n "    Auto Update $1  "
-    	(cd "$1" && svn up >/dev/null) &
+    	(cd "$1" && svn up --non-interactive --trust-server-cert >/dev/null) &
     fi
 	spinner $!
-	    
 	checkit "  SVN $1"
 }
 
