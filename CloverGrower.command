@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0g"
+myV="5.0h"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -248,12 +248,13 @@ function getSOURCEFILE() {
 		getREVISIONS${1} Initial # flag to write initial revision
 		wait
       	echo -n "    Check out $1  "
-		(svn co "$2" "$1" &>/dev/null) & 
+		(svn co "$2" "$1" --non-interactive --trust-server-cert &>/dev/null) & 
 	else
     	echo -n "    Auto Update $1  "
     	(cd "$1" && svn up >/dev/null) &
     fi
-	spinner $!    
+	spinner $!
+	    
 	checkit "  SVN $1"
 }
 
