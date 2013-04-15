@@ -318,13 +318,6 @@ function checkToolchain() {
     fi
 }
 
-# Check Directories
-function checkDirs() {
-    for d in "$cloverPKGDIR"/CloverV2/EFI/drivers64UEFI ; do
-        [[ ! -d "$d" ]] && mkdir -p "$d"
-    done
-}
-
 # Check the build environment
 function checkEnv() {
     checkCloverLink
@@ -436,9 +429,6 @@ function cleanRUN(){
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
     echo "Building Clover$archs, gcc${mygccVers} $style"
-
-    # Check that all the needed directories are created
-    checkDirs
 
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
