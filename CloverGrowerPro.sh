@@ -618,7 +618,8 @@ function makePKG(){
         versionToBuild=$CLOVER_LOCAL_REV
     fi
 
-    if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" ]]; then
+    if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" || \
+          $(grep -c 'GCC47_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0 ]]; then
         # get configuration files from Clover
         cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${EDK2DIR}/Conf/"
         cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${EDK2DIR}/Conf/"
