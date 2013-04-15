@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0h"
+myV="5.0i"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -329,6 +329,7 @@ function cleanRUN(){
 			checkit "rEFIT_UEFI_$theBits: $theStyle" 
 			cd ..
 		fi
+		rm -rf "${buildDIR}"
 	done	
 }
 	
@@ -531,7 +532,7 @@ function makePKG(){
 	echob "             Available Space : ${workSpaceAvail} MB"
 	echo
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
-		if [[ -d "${CloverDIR}" ]]; then
+		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             	echob "Clover Update Detected !"
@@ -564,7 +565,7 @@ function makePKG(){
 	else    	
 	      	cloverUpdate="Yes"
     fi
-    if [[ ! -d "${CloverDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
+    if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echob "Getting SVN Source Files, Hang ten…"
     	getSOURCE
    	 	versionToBuild="${CloverREV}"
@@ -575,22 +576,22 @@ function makePKG(){
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
-    if [[ ! -f "${CloverDIR}/ebuild.sh.orig" ]]; then
+    if [[ ! -f "${CloverDIR}/ebuild.sh.CG" ]]; then
          # Patch ebuild.sh
        echob "    Patching ebuild to GCC${mygccVers}"
-       sed -i'.orig' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
+       sed -i'.CG' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
          "${CloverDIR}/ebuild.sh"
        wait
        checkit "    Patched Clover ebuild.sh"
     fi
-    if [[ ! -f "${rEFItDIR}/build32.sh.orig" ]]; then
+    if [[ ! -f "${rEFItDIR}/build32.sh.CG" ]]; then
          # Patch build32.sh
        echob "    Patching rEFIt/build32.sh to GCC${mygccVers}"
-       sed -i'.orig' -e "s!TARGET_TOOLS=GCC47!TARGET_TOOLS=GCC${mygccVers}!g" -e "s!RELEASE_GCC47!RELEASE_GCC${mygccVers}!" "${rEFItDIR}/build32.sh"
+       sed -i'.CG' -e "s!TARGET_TOOLS=GCC47!TARGET_TOOLS=GCC${mygccVers}!g" -e "s!RELEASE_GCC47!RELEASE_GCC${mygccVers}!" "${rEFItDIR}/build32.sh"
        wait
        checkit "    Patched rEFIt build32.sh"
     fi
-    if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.orig ]]; then
+    if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.CG ]]; then
     	# Remove old edk2 config files
       	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 		wait
@@ -602,7 +603,7 @@ function makePKG(){
 
        # Patch edk2/Conf/tools_def.txt for GCC
        	echob "Patching tools_def.txt to GCC${mygccVers}"
-        sed -i'.orig' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
+        sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
         "${edk2DIR}"/Conf/tools_def.txt
         wait
         checkit "    Patched edk2 Conf/tools_def.txt"
@@ -638,9 +639,9 @@ function makePKG(){
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
 		cd "${CloverDIR}"/CloverPackage
-		#if [[ ! -f "${CloverDIR}"/CloverPackage/package/buildpkg.sh.orig ]]; then
+		#if [[ ! -f "${CloverDIR}"/CloverPackage/package/buildpkg.sh.CG ]]; then
          	# Patch buildpkg.sh 
-       		#sed -i'.orig' -e "s!add_ia32=0!add_ia32=1!g" "${CloverDIR}"/CloverPackage/package/buildpkg.sh
+       		#sed -i'.CG' -e "s!add_ia32=0!add_ia32=1!g" "${CloverDIR}"/CloverPackage/package/buildpkg.sh
        		#wait
        		#checkit "    Patched Clover buildpkg.sh"
     	#fi
@@ -664,36 +665,8 @@ function makePKG(){
 	fi
 	
 }
-if [[ ! -f "${filesDIR}/.gccVersion" || "$(date +%a)" == "$checkDay" ]]; then
-	checkURL "http://gcc.gnu.org/index.html" "gcc" "Auto Checking Gnu GCC for updates" # check website exists and online, use DEFAULT if fail.
-	if [[ "$useDEFAULT" == "No" ]]; then
-		gccVersLatest=$(curl -s http://gcc.gnu.org/index.html | sed -n 's/.*>GCC \([0-9.]*\)<.*/\1/p' | head -n1) # get latest version info ;)
-		if [[ "${gccVersLatest}" != "${gccVersToUse}" ]]; then
-			echob "    Updated GCC Detected [${gccVersLatest}]"			
-			echob "    This is EXPERIMENTAL!!!"
-			echob "    Checking Updated URL has revision ${gccVersLatest}"
-			checkexists=`curl -s http://mirrors.kernel.org/gnu/gcc/gcc-${gccVersLatest}/ | grep '404'`
-			if [[ "${checkexists:7:13}" == "404 Not Found" ]]; then
-				echob "ERROR:"
-				echob "     GCC Version: ${gccVersLatest} NOT AVAILABLE YET"
-				echob "     Will Use DEFAULT GCC ${gccVersToUse} instead"
-				gccVersLatest="${gccVersToUse}"
-			else
-				echob "    OK, Will Use Updated GCC ${gccVersLatest}"
-				if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
-					rm -rf "${filesDIR}"/.CloverTools
-					rm -rf "${TOOLCHAIN}"
-				fi
-				gccUpdated="Yes"
-			fi
-		else
-			echob "No Updates Found..."		
-		fi
-		echo "${gccVersLatest}" >"${filesDIR}/.gccVersion"
-	else
-		echo "${gccVersToUse}" >"${filesDIR}/.gccVersion"
-	fi
-fi		
+[[ ! -f "${filesDIR}/.gccVersion" ]] && echo "${gccVersToUse}" >"${filesDIR}/.gccVersion"
+
 gccVers=$(cat "${filesDIR}/.gccVersion")
 
 # setup gcc
