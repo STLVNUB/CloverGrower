@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0i"
+myV="5.0j"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -320,15 +320,6 @@ function cleanRUN(){
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		./ebuild.sh -gcc${mygccVers} -$az -"$style"
 		checkit "Clover$az $theStyle"
-		if [[ $az == ia32 ]]; then 
-			cd "${rEFItDIR}"
-			clear
-			echob "	 Building rEFIt32: $builder $style $(date -j +%T)"
-			echob "	 With build32.sh"
-			./"build32.sh" 
-			checkit "rEFIT_UEFI_$theBits: $theStyle" 
-			cd ..
-		fi
 		rm -rf "${buildDIR}"
 	done	
 }
@@ -584,13 +575,6 @@ function makePKG(){
        wait
        checkit "    Patched Clover ebuild.sh"
     fi
-    if [[ ! -f "${rEFItDIR}/build32.sh.CG" ]]; then
-         # Patch build32.sh
-       echob "    Patching rEFIt/build32.sh to GCC${mygccVers}"
-       sed -i'.CG' -e "s!TARGET_TOOLS=GCC47!TARGET_TOOLS=GCC${mygccVers}!g" -e "s!RELEASE_GCC47!RELEASE_GCC${mygccVers}!" "${rEFItDIR}/build32.sh"
-       wait
-       checkit "    Patched rEFIt build32.sh"
-    fi
     if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.CG ]]; then
     	# Remove old edk2 config files
       	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
@@ -639,12 +623,6 @@ function makePKG(){
 			rm -rf "${CloverDIR}"/CloverPackage/sym
 		fi
 		cd "${CloverDIR}"/CloverPackage
-		#if [[ ! -f "${CloverDIR}"/CloverPackage/package/buildpkg.sh.CG ]]; then
-         	# Patch buildpkg.sh 
-       		#sed -i'.CG' -e "s!add_ia32=0!add_ia32=1!g" "${CloverDIR}"/CloverPackage/package/buildpkg.sh
-       		#wait
-       		#checkit "    Patched Clover buildpkg.sh"
-    	#fi
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 		./makepkg "No"
 		wait
