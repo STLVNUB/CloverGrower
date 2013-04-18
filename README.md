@@ -1,6 +1,8 @@
 CloverGrower ( with some JrCs Enhancements )
 ============
 
+Important note: If upgrading, please run CloverGrower.command first.
+
 Simple compile Tool For Clover UEFI/bios OS X Booter, suitable for Novice.
 
 Downloads, Compiles and makes package for Clover UEFI/bios bootloader by slice & company
