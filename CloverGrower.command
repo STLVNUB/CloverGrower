@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0j"
+myV="5.0k"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -479,32 +479,32 @@ autoBuild(){
 
 # makes pkg if Built OR builds THEN makes pkg
 function makePKG(){
+	#set -x
 	versionToBuild=""
 	cloverUpdate="No"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
-		if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
-			theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | sed -n 's/^Clover revision: *//p')
-			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
-				built="Yes"
-			else
-				built="No "
-				cloverUpdate="Yes"
-			fi
-			clear
-			echob "*********Clover Build STATS***********"
-			echob "*      remote revision at ${CloverREV}       *" 
-			echob "*      local  revision at ${versionToBuild}       *"
-			if [ "$built" == "Yes" ]; then
-				echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made! *"
-				echob "**************************************"
-				return
-			fi
-			echob "*      Package Built   =  $built        *"
-			echob "**************************************"
+		theBuiltVersion=`ls -t "${builtPKGDIR}"`
+		[[ theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
+		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
+			built="Yes"
+		else
+			built="No "
+			cloverUpdate="Yes"
 		fi
-	fi	
+		clear
+		echob "*********Clover Build STATS***********"
+		echob "*      remote revision at ${CloverREV}       *" 
+		echob "*      local  revision at ${versionToBuild}       *"
+		if [ "$built" == "Yes" ]; then
+			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made! *"
+			echob "**************************************"
+			return
+		fi
+		echob "*      Package Built   =  $built        *"
+		echob "**************************************"
+	fi
 	echo
 	echob "********************************************"
 	echob "*             Good $hours              *"
@@ -542,7 +542,9 @@ function makePKG(){
        			cd ..
        		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
        			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
-    		else
+    		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
+       			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
+       		else
             	echob "No Clover Update found."
             	echob "Current revision: ${cloverLVers}"
             fi
@@ -624,11 +626,12 @@ function makePKG(){
 		fi
 		cd "${CloverDIR}"/CloverPackage
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
-		./makepkg "No"
+		./makepkg
 		wait
-		echob "mkdir buildPKG/${versionToBuild}."
-		[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
-		mkdir "${builtPKGDIR}"/"${versionToBuild}"
+		echob "run ./makeiso"
+		./makeiso "No"
+		wait
+		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
