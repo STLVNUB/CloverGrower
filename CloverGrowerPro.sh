@@ -316,6 +316,9 @@ function checkToolchain() {
     if [[ ! -x "${TOOLCHAIN}/bin/x86_64-linux-gnu-gcc" ]]; then
         installToolchain
     fi
+    if [[ ! -x "${TOOLCHAIN}/bin/msgmerge" ]]; then
+        installGettext
+    fi
 }
 
 # Check the build environment
@@ -476,6 +479,21 @@ function installToolchain() {
     cd ..
 }
 
+function installGettext() {
+    cd "${WORKDIR}"/Files
+
+    # Get the latest version of buildgettext.sh from clover
+    echob "Checking out last version of buildgettext.sh from clover..."
+    svn export --force "$CLOVERSVNURL"/buildgettext.sh "$srcDIR"/buildgettext.sh >/dev/null
+
+    echob "Starting CloverGrower Compile Tools process..."
+    date
+    # build gettext
+    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+     "$srcDIR"/buildgettext.sh
+    tput bel
+    cd ..
+}
 
 autoBuild(){
     local theARCHS="$1"
@@ -667,6 +685,7 @@ function makePKG(){
             fi
             cd "${CloverDIR}"/CloverPackage
             echob "cd to ${CloverDIR}/CloverPackage and run ./makepkg."
+            export GETTEXT_PREFIX="$TOOLCHAIN"
             ./makepkg "No" || exit $?
             [[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
             cp -p "${CloverDIR}"/CloverPackage/sym/*.pkg "${builtPKGDIR}"/
