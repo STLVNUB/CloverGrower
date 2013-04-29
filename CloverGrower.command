@@ -622,13 +622,10 @@ function makePKG(){
 
 	# Check that the gettext utilities exists
 	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
-    	msgmerge_bin="$(type -P msgmerge)"
-    	if [[ ! -x "$msgmerge_bin" ]]; then
-    		echob "Need getttext for package builder, Fixing..."
-    		"${CloverDIR}"/buildgettext.sh
-    		checkit "buildtext.sh"
-    	fi
-	fi
+    	echob "Need getttext for package builder, Fixing..."
+    	"${CloverDIR}"/buildgettext.sh
+    	checkit "buildtext.sh"
+    fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
 		echob "Making Clover_v2_r${versionToBuild}.pkg..."
 		sleep 3
