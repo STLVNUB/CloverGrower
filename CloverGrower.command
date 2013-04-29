@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0k"
+myV="5.0l"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -618,6 +618,17 @@ function makePKG(){
 		echob "Clover revision $CloverREV Compile process took $TTIMEM to complete" 
 	fi
 	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
+	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
+
+	# Check that the gettext utilities exists
+	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
+    	msgmerge_bin="$(type -P msgmerge)"
+    	if [[ ! -x "$msgmerge_bin" ]]; then
+    		echob "Need getttext for package builder, Fixing..."
+    		"${CloverDIR}"/buildgettext.sh
+    		checkit "buildtext.sh"
+    	fi
+	fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
 		echob "Making Clover_v2_r${versionToBuild}.pkg..."
 		sleep 3
