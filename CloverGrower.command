@@ -636,7 +636,8 @@ function makePKG(){
 		./makepkg "No"
 		wait
 		if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2_r"${versionToBuild}".pkg ]; then 
-			echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error"
+			echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
+			echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
 			exit 1
 		else
 			echob "Clover_v2_r${versionToBuild}.pkg	successfully built"
