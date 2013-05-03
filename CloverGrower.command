@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0l"
+myV="5.0n"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -627,27 +627,24 @@ function makePKG(){
     	checkit "buildtext.sh"
     fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
+		[[ -f "${builtPKGDIR}/${versionToBuild}" ]] && rm -rf "${builtPKGDIR}/${versionToBuild}" # need to delete in case of failed build
 		echob "Making Clover_v2_r${versionToBuild}.pkg..."
 		sleep 3
-		if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
-			rm -rf "${CloverDIR}"/CloverPackage/sym
-		fi
+		[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 		cd "${CloverDIR}"/CloverPackage
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
-		./makepkg
+		./makepkg "No"
 		wait
 		echob "run ./makeiso"
 		./makeiso "No"
 		wait
 		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
-		cp -R "${CloverDIR}"/CloverPackage/sym/ "${builtPKGDIR}"/"${versionToBuild}"/
+		cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
 		rm -rf "${buildDIR}"
-		echob "rm -rf builtPKG/${versionToBuild}/package Folder, it is 'NOT NEEDED'"
-		rm -rf "${builtPKGDIR}"/"${versionToBuild}"/package
 		echob "open builtPKG/${versionToBuild}."
 		open "${builtPKGDIR}"/"${versionToBuild}"
 		tput bel
