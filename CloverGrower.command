@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0n"
+myV="5.0o"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -635,10 +635,16 @@ function makePKG(){
 		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 		./makepkg "No"
 		wait
+		if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2_r"${versionToBuild}".pkg ]; then 
+			echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error"
+			exit 1
+		else
+			echob "Clover_v2_r${versionToBuild}.pkg	successfully built"
+		fi	
 		echob "run ./makeiso"
 		./makeiso "No"
 		wait
-		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
+		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
