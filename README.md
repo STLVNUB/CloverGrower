@@ -1,8 +1,11 @@
 CloverGrower ( with some JrCs Enhancements )
 ============
 
-Important note: If upgrading, please run CloverGrower.command first.
+Important notes: 
+1. Make sure you have Xcode Command Line Tools installed. Won't work without it.
+2. If upgrading, please run CloverGrower.command first.
 
+What is it??;
 Simple compile Tool For Clover UEFI/bios OS X Booter, suitable for Novice.
 
 Downloads, Compiles and makes package for Clover UEFI/bios bootloader by slice & company
@@ -14,10 +17,6 @@ OS X: Leopard, Snow Leopard, Lion and Mountain Lion
 Windows:
 Linux:
 Unix:
-
-
-
-Make sure you have Xcode Command Line Tools installed. Won't work without it.
 
 Unzip and run CloverGrower.command, you only need to do this ONCE.
 CloverGrower will download all sources, GCC4.8.0 ( will use latest version), edk2 and Clover.
