@@ -2,6 +2,7 @@ CloverGrower ( with some JrCs Enhancements )
 ============
 
 Important notes: 
+
 1. Make sure you have Xcode Command Line Tools installed. Won't work without it.
 2. If upgrading, please run CloverGrower.command first.
 
