@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.0o"
+myV="5.1a"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -15,18 +15,16 @@ theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 export myArch=`uname -m`
-if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
+archBit='x86_64'
+if [[ "$1" == "32"  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
 	target="X64/IA32"
 elif [[ "$myArch" == "i386" ]]; then
 	target="IA32"
+	archBit='i686'
 else		
 	target="X64"
 fi
-if [[ "$myArch" == "i386" ]]; then
-	archBit='i686'
-else
-	archBit='x86_64'
-fi		
+		
 # don't use -e
 set -u
 user=$(id -un)
@@ -313,7 +311,7 @@ function cleanRUN(){
 	elif [[ "$myArch" == "i386" ]]; then
 		archBits='ia32'
 	else
-		archBits='x64'
+		archBits='x64 mc'
 	fi		
 	cd "${CloverDIR}"
 	for az in $archBits ; do
@@ -397,8 +395,8 @@ echo "  Enter 'c'"
 echob "  to install to: $WORKDIR/src/CloverTools"
 echo "  Enter 'u'"
 echob "  to PERMANENTLY install to: /usr/local"
-echob "  Hit 'return' to EXIT"
-echob "  Type letter and hit <RETURN>: "
+echob "  Press RETURN/ENTER' to EXIT CloverGrower"
+echob "  Enter 'o' or 'c' or 'u' and press 'RETURN/ENTER'"
 sudoIT="sudo" # install to /opt OR /usr need sudo
 read choose
 case $choose in
@@ -500,6 +498,16 @@ function makePKG(){
 		if [ "$built" == "Yes" ]; then
 			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made! *"
 			echob "**************************************"
+			if [[ "${gRefitVers}" == "0" ]]; then 
+				echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
+			else
+				echob "${gCloverLoader}"
+				if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
+					echob "Updated package NOT installed!!"
+					echob "Opening ${versionToBuild}"
+					open "${builtPKGDIR}"/"${versionToBuild}"
+				fi	
+ 			fi	
 			return
 		fi
 		echob "*      Package Built   =  $built        *"
@@ -514,6 +522,7 @@ function makePKG(){
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
+	echob "$g{theLoader}"; echo
 	echob "Build  Stats:-"
 	echob "             Clover  : revision: ${CloverREV}"
 	echob "             Target  : $target"
@@ -543,7 +552,7 @@ function makePKG(){
        		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
        			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
     		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
-       			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
+       			echob "Clover_v2_r${versionToBuild}.pkg built"
        		else
             	echob "No Clover Update found."
             	echob "Current revision: ${cloverLVers}"
@@ -648,7 +657,7 @@ function makePKG(){
 		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
-		echob "rm -rf src/edk2/Clover/CloverPackage/sym."
+		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
 		rm -rf "${buildDIR}"
@@ -657,6 +666,39 @@ function makePKG(){
 		tput bel
 	fi
 	
+}
+
+getInstalledLoader(){
+	local efi=`ioreg -l -p IODeviceTree | grep firmware-abi | awk '{print $5}'`
+    local efiBITS="${efi:5:2}"
+    if [ "${efiBITS}" == "32" ]; then
+    	efiBITS="IA32"
+    elif [ "${efiBITS}" == "64" ]; then
+       	efiBITS="X64"
+    else
+    	efiBITS="WhoKnows"   	
+    fi
+    
+    # Discover current bootloader and associated version.
+    gRefitVers="0"
+    gTheLoader=$(ioreg -l -pIODeviceTree | grep firmware-vendor | awk '{print $5}' | sed 's/_/ /g' | tr -d "<\">" | xxd -r -p)
+    if [[ "$gTheLoader" != "" || "$gTheLoader" != "Apple" ]]; then
+    	gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
+            "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g' )
+		gCloverLoader="Booting with ${gTheLoader} UEFI using CloverEFI_${efiBITS} r${gRefitVers}"
+    elif [[ "$gTheLoader" == "" ]]; then
+        gTheLoader="Unknown_${efiBITS}"
+	elif [[ "$gTheLoader" == "CLOVER" ]]; then
+		 gTheLoader="Clover_${efiBITS}_${gRefitVers}" 
+	else
+		local tmp=""
+        tmp=`ioreg -p IODeviceTree | grep RevoEFI`
+        if [ ! "$tmp" == "" ]; then 
+        	gTheLoader="RevoBoot_${efiBITS}"
+        else
+            gTheLoader="${gTheLoader}_${efiBITS}"
+        fi
+    fi    	
 }
 [[ ! -f "${filesDIR}/.gccVersion" ]] && echo "${gccVersToUse}" >"${filesDIR}/.gccVersion"
 
@@ -675,7 +717,7 @@ if [[ "${gVers}" == "" ]];then
     checkGCC
     [[ -n "${CG_PREFIX}" ]] && echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
 fi
-
+getInstalledLoader # check what user is booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
