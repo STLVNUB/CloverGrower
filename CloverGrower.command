@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1a"
+myV="5.1b"
 checkDay="Mon"
 gccVersToUse="4.8.0" # failsafe check
 # Reset locales (important when grepping strings from output commands)
@@ -522,7 +522,11 @@ function makePKG(){
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
-	echob "$g{theLoader}"; echo
+	if [[ "${gRefitVers}" == "0" ]]; then 
+		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
+	else
+		echob "${gCloverLoader}"
+	fi
 	echob "Build  Stats:-"
 	echob "             Clover  : revision: ${CloverREV}"
 	echob "             Target  : $target"
