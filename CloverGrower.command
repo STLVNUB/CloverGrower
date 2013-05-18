@@ -16,7 +16,7 @@ theShortcut=`echo ~/Desktop`
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 export myArch=`uname -m`
 archBit='x86_64'
-if [[ "$1" == "32"  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
+if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
 	target="X64/IA32"
 elif [[ "$myArch" == "i386" ]]; then
 	target="IA32"
@@ -153,13 +153,13 @@ esac
 function spinner()
 {
     local pid=$1
-    local delay=0.25
+    #local delay=0.25
     local spinstr='|/-\'
     while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
         local temp=${spinstr#?}
         printf " [%c]  " "$spinstr"
         local spinstr=$temp${spinstr%"$temp"}
-        sleep $delay
+        #sleep $delay
         printf "\b\b\b\b\b\b"
     done
     printf "    \b\b\b\b"
@@ -571,7 +571,7 @@ function makePKG(){
 	      	cloverUpdate="Yes"
     fi
     if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
-    	echob "Getting SVN Source Files, Hang ten…"
+    	echob "Getting SVN Source Files, Hang ten, OR TWENTY"
     	getSOURCE
    	 	versionToBuild="${CloverREV}"
    	else
