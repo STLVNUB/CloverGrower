@@ -1,7 +1,7 @@
 #!/bin/bash
-myV="5.1b"
+myV="5.1c"
 checkDay="Mon"
-gccVersToUse="4.8.0" # failsafe check
+gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
@@ -371,7 +371,6 @@ function checkGCC(){
                 y|Y)
                      echo "  Fixing gcc…"
                      MakeSymLinks
-                     echo "${lVers}" > "${filesDIR}"/.gccVersion
                      return
                      ;;
                 *)
@@ -704,9 +703,6 @@ getInstalledLoader(){
         fi
     fi    	
 }
-[[ ! -f "${filesDIR}/.gccVersion" ]] && echo "${gccVersToUse}" >"${filesDIR}/.gccVersion"
-
-gccVers=$(cat "${filesDIR}/.gccVersion")
 
 # setup gcc
 gVers=""
