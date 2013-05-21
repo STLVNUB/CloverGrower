@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1c"
+myV="5.1d"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -562,15 +562,23 @@ function makePKG(){
             fi
     	fi
     	sleep 3
-    elif [[ -d "${edk2DIR}" && ! -f "${edk2DIR}"/Basetools/Source/C/VfrCompile && ! -f "${edk2DIR}"/edksetup.sh ]]; then
-    		getREVISIONSedk2 "test"
-    		echob "svn edk2 revision: ${edk2REV}"
-    		echob "error!!! DELETE & RETRY"
-	    	rm -rf "${edk2DIR}"
-	else    	
+    else    	
 	      	cloverUpdate="Yes"
     fi
-    if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
+	
+    if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
+    		getREVISIONSedk2 "test"
+    		echob "svn edk2 revision: ${edk2REV}"
+    		echob "error!!! RETRY!!"
+	    	cd "${edk2DIR}"
+	    	svn cleanup
+	    	wait
+	    	echo -n "    Auto Fixup edk2  "
+	    	(svn up --non-interactive --trust-server-cert >/dev/null) &
+	    	spinner $!
+			checkit "edk2  "
+	fi		
+	if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echob "Getting SVN Source Files, Hang ten, OR TWENTY"
     	getSOURCE
    	 	versionToBuild="${CloverREV}"
