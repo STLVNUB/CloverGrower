@@ -6,6 +6,7 @@
 # Files generated automatically
 Files/.CloverTools
 Files/.gccVersion
+Files/buildgcc2.sh
 
 # Directories that we doesn't need to track
 builtPKG/

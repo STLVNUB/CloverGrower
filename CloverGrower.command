@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1d"
+myV="5.1f"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -731,4 +731,4 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-echob "Good $hours $user, Thanks for using CloverGrower" 
+echob "Good $hours $user, Thanks for using CloverGrower V$myV" 
