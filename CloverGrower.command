@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1g"
+myV="5.1i"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -70,10 +70,11 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
 		echob "Running CloverGrower.command"
 		theText="link"
-		echob "To make it easier to use I will do one of the following"
-		echob "Create link, in /usr/local/bin.     Select any key"
-		echob "Create Shortcut, put it on Desktop. Select 's'"
-		echob "Type 's' OR any key"
+		echob "To make CloverGrower $myV easier to use"
+		echob "I will do one of the following:"
+		echo "    Create link, in /usr/local/bin.     Select any key"
+		echo "    Create Shortcut, put it on Desktop. Select 's'"
+		echob "    Type 's' OR any key"
 		read theSelect
 		case "$theSelect" in
                 s|S)
@@ -114,7 +115,7 @@ buildDIR="${edk2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
-
+export CG_PREFIX="${WORKDIR}"/src/CloverTools
 # Some Flags
 buildClover=0
 
@@ -354,53 +355,28 @@ function DoLinks(){
 # checks for gcc install and installs if NOT found
 function checkGCC(){
     export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
-    gccDIRS="$WORKDIR/src/CloverTools" # user has 1 choices for gcc install
-    echob "Checking gcc $gccVers INSTALL status"
-    for theDIRS in $gccDIRS; do # check install dirs for gcc
-        CG_PREFIX="${theDIRS}" #else
-        echo "  Checking ${theDIRS}"
-        if [ -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]; then
-            local lVers=$("${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc -dumpversion)
-            export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
-            echo "  gcc $lVers detected in ${theDIRS}"
-            read -p "  Do you want to use it [y/n] " choose
-            case "$choose" in
-                n|N)
-                     CG_PREFIX=""
-                     break
-                     ;;
-                y|Y)
-                     echo "  Fixing gcc…"
-                     MakeSymLinks
-                     return
-                     ;;
-                *)
-                   echob "  Good $hours $user"
-                   exit 1
-            esac
-        else
-            sleep 1
-            echob "  ...Not Found"
-        fi
-    done
+    echob "Checking GCC$gccVers INSTALL status"
+    if [ -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]; then
+    	local lVers=$("${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc -dumpversion)
+        export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
+        echo "  gcc $lVers detected"
+        echo "  Fixing gcc…"
+        MakeSymLinks
+        return
+    else
+        sleep 1
+	    echob "  ...Not Found, Installing"
+    fi
     installGCC
 }
 
 function installGCC(){
-echob "CloverTools using gcc $gccVers NOT installed";echo
-echob "Installing CloverTools using gcc $gccVers to"
-echob "$WORKDIR/src/CloverTools"
-echob "  Press RETURN/ENTER' to EXIT CloverGrower"
-echob "  Enter 'i' and press 'RETURN/ENTER'"
+echob "CloverTools NOT installed";echo
+echob "Press 'i' To install GCC$gccVers"
+echob "OR"
+echob "Press RETURN/ENTER' to EXIT CloverGrower"
 read choose
-case $choose in
-	i|I)
-	CG_PREFIX="${WORKDIR}"/src/CloverTools
-	;;
-	*)
-	echob "	 Good $hours"
-	exit 1
-esac
+[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
 [ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
 cd "${WORKDIR}"/Files
 echo "  Download and install CloverGrower gcc Compile Tools"
@@ -416,7 +392,6 @@ wait
 tput bel
 cd ..
 if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
-	echo "${CG_PREFIX}" >"${filesDIR}"/.CloverTools # if 2 above are found write into gcc config file
 	MakeSymLinks
 	flagTime="Yes"
 	return 
@@ -698,17 +673,8 @@ getInstalledLoader(){
 }
 
 # setup gcc
-gVers=""
-if [ -f "${filesDIR}"/.CloverTools ] && [ -d "${TOOLCHAIN}" ]; then # Path to GCC4?
-	export CG_PREFIX=$(cat "${filesDIR}"/.CloverTools) # get Path
-	if [[ -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]]; then
-		gVers=$("${CG_PREFIX}/bin/${archBit}-linux-gnu-gcc" -dumpversion)
-	fi
-fi
-
-if [[ "${gVers}" == "" ]];then
-    checkGCC
-    [[ -n "${CG_PREFIX}" ]] && echo "${CG_PREFIX}" >"${filesDIR}/.CloverTools"
+if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
+	checkGCC
 fi
 getInstalledLoader # check what user is booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
