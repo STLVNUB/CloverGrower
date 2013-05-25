@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1f"
+myV="5.1g"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -327,9 +327,10 @@ function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
     if [[ "$target" == "IA32" ]]; then
-    	DoLinks "ia32" "i686-linux-gnu"
+    	DoLinks "ia32" "i686-linux-gnu" # only for 32bit cpu
     else	
-        DoLinks "x64"  "x86_64-linux-gnu"
+        DoLinks "x64"  "x86_64-linux-gnu" # for 64bit CPU
+        DoLinks "ia32" "x86_64-linux-gnu" # ditto
     fi    
 }
 
@@ -353,7 +354,7 @@ function DoLinks(){
 # checks for gcc install and installs if NOT found
 function checkGCC(){
     export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
-    gccDIRS="/usr/local /opt/local $WORKDIR/src/CloverTools" # user has 3 choices for gcc install
+    gccDIRS="$WORKDIR/src/CloverTools" # user has 1 choices for gcc install
     echob "Checking gcc $gccVers INSTALL status"
     for theDIRS in $gccDIRS; do # check install dirs for gcc
         CG_PREFIX="${theDIRS}" #else
@@ -387,48 +388,30 @@ function checkGCC(){
 
 function installGCC(){
 echob "CloverTools using gcc $gccVers NOT installed";echo
-echob "Install CloverTools using gcc $gccVers to folder"
-echo "  Enter 'o'"
-echob "  to PERMANENTLY install to: /opt/local (RECOMMENDED)"
-echo "  Enter 'c'"
-echob "  to install to: $WORKDIR/src/CloverTools"
-echo "  Enter 'u'"
-echob "  to PERMANENTLY install to: /usr/local"
+echob "Installing CloverTools using gcc $gccVers to"
+echob "$WORKDIR/src/CloverTools"
 echob "  Press RETURN/ENTER' to EXIT CloverGrower"
-echob "  Enter 'o' or 'c' or 'u' and press 'RETURN/ENTER'"
-sudoIT="sudo" # install to /opt OR /usr need sudo
+echob "  Enter 'i' and press 'RETURN/ENTER'"
 read choose
 case $choose in
-	c|C)
+	i|I)
 	CG_PREFIX="${WORKDIR}"/src/CloverTools
-	sudoIT="sh" # if install to above NO need to sudo ( well hopefully)
-	;;
-	o|O)
-	CG_PREFIX="/opt/local"
-	;;
-	u|U)
-	CG_PREFIX="/usr/local"
 	;;
 	*)
 	echob "	 Good $hours"
 	exit 1
-	esac
-if [ "$sudoIT" == "sudo" ];then
-	echob "  Need Admin Privileges for ${CG_PREFIX}"
-	[ ! -d "${CG_PREFIX}"/src ] && "$sudoIT" mkdir -p "${CG_PREFIX}"/src && "$sudoIT" chown -R root:wheel "${CG_PREFIX}"
-else
-	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
-fi		
+esac
+[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
 cd "${WORKDIR}"/Files
 echo "  Download and install CloverGrower gcc Compile Tools"
 echob "  To: ${CG_PREFIX}"
 echo "  Press any key to start the process..."
 read
-echo "  $sudoIT Files/buildgcc -all ${CG_PREFIX} $gccVers"
+echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
 echob "  Starting CloverGrower Compile Tools process..." 
 STARTM=$(date -u "+%s")
 date
-("$sudoIT" ./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
 wait    
 tput bel
 cd ..
@@ -502,8 +485,8 @@ function makePKG(){
 			else
 				echob "${gCloverLoader}"
 				if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
-					echob "Updated package NOT installed!!"
-					echob "Opening ${versionToBuild}"
+					echob "Updated package (${versionToBuild}) NOT installed!!"
+					echob "Opening ${versionToBuild} Folder"
 					open "${builtPKGDIR}"/"${versionToBuild}"
 				fi	
  			fi	
@@ -567,7 +550,8 @@ function makePKG(){
     fi
 	
     if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
-    		getREVISIONSedk2 "test"
+    	getREVISIONSedk2 "test"
+    	if [[ -d "${edk2DIR}"/.svn ]]; then
     		echob "svn edk2 revision: ${edk2REV}"
     		echob "error!!! RETRY!!"
 	    	cd "${edk2DIR}"
@@ -577,6 +561,7 @@ function makePKG(){
 	    	(svn up --non-interactive --trust-server-cert >/dev/null) &
 	    	spinner $!
 			checkit "edk2  "
+		fi		
 	fi		
 	if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echob "Getting SVN Source Files, Hang ten, OR TWENTY"
@@ -714,7 +699,7 @@ getInstalledLoader(){
 
 # setup gcc
 gVers=""
-if [ -f "${filesDIR}"/.CloverTools ]; then # Path to GCC4?
+if [ -f "${filesDIR}"/.CloverTools ] && [ -d "${TOOLCHAIN}" ]; then # Path to GCC4?
 	export CG_PREFIX=$(cat "${filesDIR}"/.CloverTools) # get Path
 	if [[ -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]]; then
 		gVers=$("${CG_PREFIX}/bin/${archBit}-linux-gnu-gcc" -dumpversion)
