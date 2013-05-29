@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1i"
+myV="5.1k"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -578,26 +578,7 @@ function makePKG(){
     sleep 3
     autoBuild "$1"
     tput bel
-    if [ "$flagTime" == "Yes" ]; then
-		STOPBM=$(date -u "+%s")
-		RUNTIMEMB=$(expr $STOPBM - $STARTM)
-		if (($RUNTIMEMB>59)); then
-			TTIMEMB=$(printf "%dm%ds\n" $((RUNTIMEMB/60%60)) $((RUNTIMEMB%60)))
-		else
-			TTIMEMB=$(printf "%ds\n" $((RUNTIMEMB)))
-		fi
-		echob "Clover	Grower Complete Build process took $TTIMEMB to complete..."
-	else
-		STOPM=$(date -u "+%s")
-		RUNTIMEM=$(expr $STOPM - $STARTM)
-		if (($RUNTIMEM>59)); then
-			TTIMEM=$(printf "%dm%ds\n" $((RUNTIMEM/60%60)) $((RUNTIMEM%60)))
-		else
-			TTIMEM=$(printf "%ds\n" $((RUNTIMEM)))
-		fi	
-		echob "Clover revision $CloverREV Compile process took $TTIMEM to complete" 
-	fi
-	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
+    echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
 	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
 
 	# Check that the gettext utilities exists
@@ -625,6 +606,25 @@ function makePKG(){
 		echob "run ./makeiso"
 		./makeiso "No"
 		wait
+		if [ "$flagTime" == "Yes" ]; then
+			STOPBM=$(date -u "+%s")
+			RUNTIMEMB=$(expr $STOPBM - $STARTM)
+			if (($RUNTIMEMB>59)); then
+				TTIMEMB=$(printf "%dm%ds\n" $((RUNTIMEMB/60%60)) $((RUNTIMEMB%60)))
+			else
+				TTIMEMB=$(printf "%ds\n" $((RUNTIMEMB)))
+			fi
+			echob "CloverGrower Complete Build process took $TTIMEMB to complete..."
+		else
+			STOPM=$(date -u "+%s")
+			RUNTIMEM=$(expr $STOPM - $STARTM)
+			if (($RUNTIMEM>59)); then
+				TTIMEM=$(printf "%dm%ds\n" $((RUNTIMEM/60%60)) $((RUNTIMEM%60)))
+			else
+				TTIMEM=$(printf "%ds\n" $((RUNTIMEM)))
+			fi	
+			echob "Clover revision $CloverREV Compile/MKPkg process took $TTIMEM to complete" 
+		fi
 		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
