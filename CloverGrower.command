@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1k"
+myV="5.1l"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -178,14 +178,14 @@ wait
 				
 # set up Revisions
 function getREVISIONSClover(){
-cloverstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
-export CloverREV="${cloverstats:10}"
+cloverstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
+export CloverREV="${cloverstats:10:10}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
 fi			
 #rEFIt
-refitstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
-export rEFItREV="${refitstats:18}"
+refitstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
+export rEFItREV="${refitstats:18:10}"
 wait
 }
 
@@ -204,12 +204,6 @@ if [ "$1" == "Initial" ]; then
 fi
 }
 
-function getREVISIONSgcc() {
-	checkgccsvn=`curl -s http://gcc.gnu.org/viewcvs/gcc/ | grep "Revision"`
-	wait
-	export releaseGCC="${checkgccsvn:53:6}"
-	echo $releaseGCC
-}	
 
 # check URL IS IN FACT, ONLINE, fail IF NOT.
 function checkURL {
@@ -439,6 +433,7 @@ function makePKG(){
 	cloverUpdate="No"
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
+	#echo "Revision: ${CloverREV}" && exit
 	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		theBuiltVersion=`ls -t "${builtPKGDIR}"`
 		[[ theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
