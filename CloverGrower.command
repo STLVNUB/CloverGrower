@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.1l"
+myV="5.1m"
 checkDay="Mon"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
@@ -16,11 +16,11 @@ theShortcut=`echo ~/Desktop`
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 export myArch=`uname -m`
 archBit='x86_64'
-if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
-	target="X64/IA32"
-elif [[ "$myArch" == "i386" ]]; then
+if [[ "$myArch" == "i386" ]]; then # for 32bit cpu
 	target="IA32"
 	archBit='i686'
+elif [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
+	target="X64/IA32"
 else		
 	target="X64"
 fi
@@ -31,8 +31,6 @@ user=$(id -un)
 theBoss=$(id -ur)
 hours=$(get_hours)
 theLink=/usr/local/bin/clover
-useDEFAULT="No"
-gccUpdated="No"
 if [[ -L "$theShortcut"/CloverGrower.command ]]; then
 	theLink="$theShortcut"/CloverGrower.command
 fi
@@ -179,6 +177,7 @@ wait
 # set up Revisions
 function getREVISIONSClover(){
 cloverstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
+checkit ", Clover remote SVN ${cloverstats:10:10}" # this sometimes fails, so need to check.
 export CloverREV="${cloverstats:10:10}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
@@ -207,7 +206,6 @@ fi
 
 # check URL IS IN FACT, ONLINE, fail IF NOT.
 function checkURL {
-	[[ "$2" == "gcc" ]] && echob "$3"
 	echob "    Verifying $2 URL"
 	echob "    $1"
 	curl -s -o "/dev/null" "$1"
@@ -224,10 +222,9 @@ function checkURL {
         	echob "    Appears to be URL Problem"
         	exit 1
         fi
-        useDEFAULT="Yes"	
     else
      	echob "    VERIFIED"
-     	sleep 3 
+     	sleep 1 
     fi
 
 }
@@ -258,7 +255,7 @@ function getSOURCE() {
     fi
    
     # Don't update edk2 if no Clover updates
-    if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" || "$gccUpdated" == "Yes" ]]; then
+    if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
 	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
@@ -301,10 +298,10 @@ function cleanRUN(){
 	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
-	if [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 mc ia32'	
-	elif [[ "$myArch" == "i386" ]]; then
+	if [[ "$myArch" == "i386" ]]; then # if 32bit processor
 		archBits='ia32'
+	elif [ "$bits" == "X64/IA32" ]; then
+		archBits='x64 mc ia32'
 	else
 		archBits='x64 mc'
 	fi		
@@ -321,7 +318,7 @@ function cleanRUN(){
 function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
-    if [[ "$target" == "IA32" ]]; then
+    if [[ "$target" == "IA32" ]] || [[ "$myArch" == "i386" ]]; then
     	DoLinks "ia32" "i686-linux-gnu" # only for 32bit cpu
     else	
         DoLinks "x64"  "x86_64-linux-gnu" # for 64bit CPU
@@ -448,7 +445,7 @@ function makePKG(){
 		echob "*      remote revision at ${CloverREV}       *" 
 		echob "*      local  revision at ${versionToBuild}       *"
 		if [ "$built" == "Yes" ]; then
-			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made! *"
+			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made!  *"
 			echob "**************************************"
 			if [[ "${gRefitVers}" == "0" ]]; then 
 				echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
