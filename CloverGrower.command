@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2d"
+myV="5.2e"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -437,7 +437,7 @@ function makePKG(){
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	#echo "Revision: ${CloverREV}" && exit
-	if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
+	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		theBuiltVersion=`ls -t "${builtPKGDIR}"`
 		[[ theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
 		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
@@ -598,12 +598,11 @@ function makePKG(){
     	checkit "buildtext.sh"
     fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
-		[[ -f "${builtPKGDIR}/${versionToBuild}" ]] && rm -rf "${builtPKGDIR}/${versionToBuild}" # need to delete in case of failed build
-		echob "Making Clover_v2_r${versionToBuild}.pkg..."
-		sleep 3
-		[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
-		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
+			[[ -f "${builtPKGDIR}/${versionToBuild}" ]] && rm -rf "${builtPKGDIR}/${versionToBuild}" # need to delete in case of failed build
+			echob "Making Clover_v2_r${versionToBuild}.pkg..."
+			[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
+			cd "${CloverDIR}"/CloverPackage
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
 			wait
