@@ -17,15 +17,15 @@ theShortcut=`echo ~/Desktop`
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 export myArch=`uname -m`
 archBit='x86_64'
-if [[ "$myArch" == "i386" ]]; then # for 32bit cpu
-	target="IA32"
-	archBit='i686'
-elif [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
+if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
 	target="X64/IA32"
-else		
+else 	
 	target="X64"
 fi
-		
+if [ "$myArch" == "i386" ] || [ "$1" != "" ] ; then # for 32bit cpu
+	target="IA32"
+	archBit='i686'
+fi			
 # don't use -e
 set -u
 user=$(id -un)
@@ -598,7 +598,7 @@ function makePKG(){
 		sleep 3
 		[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 		cd "${CloverDIR}"/CloverPackage
-		if [[ "$myArch" != "i386" ]]; then
+		if [[ "$target" != "IA32" ]]; then
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
 			wait
@@ -632,7 +632,7 @@ function makePKG(){
 			fi	
 			echob "Clover revision $CloverREV Compile/MKPkg process took $TTIMEM to complete" 
 		fi
-		if [[ "$myArch" != "i386" ]]; then
+		if [[ "$target" != "IA32" ]]; then
 			[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
 			echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 			cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
@@ -686,7 +686,9 @@ getInstalledLoader(){
 
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
-	checkGCC
+	if [[ "$1" == "" ]]; then
+		checkGCC
+	fi	
 fi
 getInstalledLoader # check what user is booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
