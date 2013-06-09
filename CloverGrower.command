@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2b"
+myV="5.2c"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -114,6 +114,7 @@ buildDIR="${edk2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
+theAuthor=""
 export CG_PREFIX="${WORKDIR}"/src/CloverTools
 # Some Flags
 buildClover=0
@@ -177,8 +178,10 @@ wait
 				
 # set up Revisions
 function getREVISIONSClover(){
-cloverstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code | grep 'Revision'`
+cloverInfo=$(svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code)
+cloverstats=$(echo "$cloverInfo" | grep 'Revision')
 checkit ", Clover remote SVN ${cloverstats:10:10}" # this sometimes fails, so need to check.
+theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 export CloverREV="${cloverstats:10:10}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
@@ -471,7 +474,8 @@ function makePKG(){
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************"
-	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562";echo
+	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562"
+	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
 	if [[ "${gRefitVers}" == "0" ]]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
@@ -490,8 +494,6 @@ function makePKG(){
 		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
-				cd "${CloverDIR}"
-            	theAuthor=$(svn info | grep 'Last Changed Author:')
             	if [[ "$theAuthor" == "Last Changed Author: pootle-clover" ]]; then
             		echob "*********Clover Build STATS***********"
 					echob "*      local  revision at ${cloverLVers}       *"
@@ -500,7 +502,8 @@ function makePKG(){
 					echob "**************************************"
 					echob "Commit was from 'pootle-clover' so Auto skipping"
             		return 0
-        	   	else	
+        	   	else
+    				cd "${CloverDIR}"
             		echo "$CloverREV" > Lvers.txt # update the version
             		echob "Clover Update Detected !"
             		cloverUpdate="Yes"
