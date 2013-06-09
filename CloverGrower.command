@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2e"
+myV="5.2f"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -434,40 +434,10 @@ function makePKG(){
 	#set -x
 	versionToBuild=""
 	cloverUpdate="No"
+	theBuiltVersion=
 	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	#echo "Revision: ${CloverREV}" && exit
-	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
-		theBuiltVersion=`ls -t "${builtPKGDIR}"`
-		[[ theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
-		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
-			built="Yes"
-		else
-			built="No "
-			cloverUpdate="Yes"
-		fi
-		clear
-		echob "*********Clover Build STATS***********"
-		echob "*      remote revision at ${CloverREV}       *" 
-		echob "*      local  revision at ${versionToBuild}       *"
-		if [ "$built" == "Yes" ]; then
-			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made!  *"
-			echob "**************************************"
-			if [[ "${gRefitVers}" == "0" ]]; then 
-				echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
-			else
-				echob "${gCloverLoader}"
-				if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
-					echob "Updated package (${versionToBuild}) NOT installed!!"
-					echob "Opening ${versionToBuild} Folder"
-					open "${builtPKGDIR}"/"${versionToBuild}"
-				fi	
- 			fi	
-			return
-		fi
-		echob "*      Package Built   =  $built        *"
-		echob "**************************************"
-	fi
 	echo
 	echob "********************************************"
 	echob "*             Good $hours              *"
@@ -478,10 +448,10 @@ function makePKG(){
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562"
 	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home";echo
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
-	if [[ "${gRefitVers}" == "0" ]]; then 
+	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
 	else
-		echob "${gCloverLoader}"
+			echob "${gCloverLoader}"
 	fi
 	echob "Building Stats:-"
 	echob "              Clover  : revision: ${CloverREV}"
@@ -491,32 +461,62 @@ function makePKG(){
 	echob "              Work Folder     : $WORKDIR"
 	echob "              Available Space : ${workSpaceAvail} MB"
 	echo
+	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
+	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
+		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
+			built="Yes"
+		else
+			built="No "
+			cloverUpdate="Yes"
+		fi
+		echob "*********Clover Build STATS***********"
+		echob "*      remote revision at ${CloverREV}       *" 
+		echob "*      local  revision at ${versionToBuild}       *"
+		if [ "$built" == "Yes" ]; then
+			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made!  *"
+			echob "**************************************"
+			if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
+					echob "Updated package (${versionToBuild}) NOT installed!!"
+					echob "Opening ${versionToBuild} Folder"
+					open "${builtPKGDIR}"/"${versionToBuild}"
+ 			fi	
+			return
+		fi
+		echob "*      Package Built   =  $built        *"
+		echob "**************************************"
+	fi
+
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
 		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
-			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
-            	if [[ "$theAuthor" == "Last Changed Author: pootle-clover" ]]; then
-            		echob "*********Clover Build STATS***********"
-					echob "*      local  revision at ${cloverLVers}       *"
-					echob "*      remote revision at ${CloverREV}       *"
-					echob "*      Package Built   =  $built        *"
-					echob "**************************************"
+			if [[ "$theAuthor" == "Last Changed Author: pootle-clover" ]]; then
+            	echob "*********Clover Build STATS***********"
+				echob "*      local  revision at ${cloverLVers}       *"
+				echob "*      remote revision at ${CloverREV}       *"
+				echob "*      Package Built   =  $built        *"
+				echob "**************************************"
+				if [[ "${theBuiltVersion}" != "" ]]; then
 					echob "Commit was from 'pootle-clover' so Auto skipping"
             		return 0
-        	   	else
-    				cd "${CloverDIR}"
-            		echo "$CloverREV" > Lvers.txt # update the version
-            		echob "Clover Update Detected !"
-            		cloverUpdate="Yes"
-            		echob "*********Clover Build STATS***********"
-					echob "*      local  revision at ${cloverLVers}       *"
-					echob "*      remote revision at ${CloverREV}       *"
-					echob "*      Package Built   =  $built        *"
-					echob "**************************************"
-   					echob "svn changes for $CloverREV"
-       				changesSVN=$(svn log -v -r "$CloverREV")
-       				echob "$changesSVN"
-       			fi	
+            	#elif [[ -d "${builtPKGDIR}"/"${theBuiltVersion}" ]]; then
+            		echob "Continuing…${theBuiltVersion}"
+            		exit	
+            	fi	
+            fi	
+
+			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
+            	cd "${CloverDIR}"
+           		echo "$CloverREV" > Lvers.txt # update the version
+           		echob "Clover Update Detected !"
+           		cloverUpdate="Yes"
+           		echob "*********Clover Build STATS***********"
+				echob "*      local  revision at ${cloverLVers}       *"
+				echob "*      remote revision at ${CloverREV}       *"
+				echob "*      Package Built   =  $built        *"
+				echob "**************************************"
+				echob "svn changes for $CloverREV"
+   				changesSVN=$(svn log -v -r "$CloverREV")
+   				echob "$changesSVN"
        			tput bel
        			cd ..
        		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
@@ -598,11 +598,11 @@ function makePKG(){
     	checkit "buildtext.sh"
     fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
+		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
 			[[ -f "${builtPKGDIR}/${versionToBuild}" ]] && rm -rf "${builtPKGDIR}/${versionToBuild}" # need to delete in case of failed build
 			echob "Making Clover_v2_r${versionToBuild}.pkg..."
 			[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
-			cd "${CloverDIR}"/CloverPackage
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
 			wait
@@ -668,14 +668,19 @@ getInstalledLoader(){
     # Discover current bootloader and associated version.
     gRefitVers="0"
     gTheLoader=$(ioreg -l -pIODeviceTree | grep firmware-vendor | awk '{print $5}' | sed 's/_/ /g' | tr -d "<\">" | xxd -r -p)
-    if [[ "$gTheLoader" != "" || "$gTheLoader" != "Apple" ]]; then
+    if [[ "$gTheLoader" == "Apple" ]]; then
+		 gCloverLoader="Booting with Apple EFI ${efiBITS}"
+		 gRefitVers="1"
+		 return 0
+	fi	
+    if [[ "$gTheLoader" != "" ]]; then
     	gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
             "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g' )
-		gCloverLoader="Booting with ${gTheLoader} UEFI using CloverEFI_${efiBITS} r${gRefitVers}"
+        gCloverLoader="Booting with ${gTheLoader} UEFI using CloverEFI_${efiBITS} r${gRefitVers}"
     elif [[ "$gTheLoader" == "" ]]; then
         gTheLoader="Unknown_${efiBITS}"
 	elif [[ "$gTheLoader" == "CLOVER" ]]; then
-		 gTheLoader="Clover_${efiBITS}_${gRefitVers}" 
+		gTheLoader="Clover_${efiBITS}_${gRefitVers}"
 	else
 		local tmp=""
         tmp=`ioreg -p IODeviceTree | grep RevoEFI`
@@ -684,7 +689,7 @@ getInstalledLoader(){
         else
             gTheLoader="${gTheLoader}_${efiBITS}"
         fi
-    fi    	
+    fi  
 }
 
 # setup gcc
