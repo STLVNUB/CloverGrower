@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2c"
+myV="5.2d"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -637,20 +637,19 @@ function makePKG(){
 			fi	
 			echob "Clover revision $CloverREV Compile/MKPkg process took $TTIMEM to complete" 
 		fi
+		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
+		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		if [[ "$target" != "IA32" ]]; then
-			[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
-			echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 			cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
-			echob "rm -rf src/edk2/Clover/CloverPackage/sym"
-			rm -rf "${CloverDIR}"/CloverPackage/sym
-			echob "rm -rf src/edk2/Build Folder"
-			rm -rf "${buildDIR}"
-			echob "open builtPKG/${versionToBuild}."
-			open "${builtPKGDIR}"/"${versionToBuild}"
 		else
-			echob "open CloverPackage/sym."
-			open "${CloverDIR}"/CloverPackage/sym
-		fi		
+			cp -R "${CloverDIR}"/CloverPackage/sym/* "${builtPKGDIR}"/"${versionToBuild}"/
+		fi	
+		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
+		rm -rf "${CloverDIR}"/CloverPackage/sym
+		echob "rm -rf src/edk2/Build Folder"
+		rm -rf "${buildDIR}"
+		echob "open builtPKG/${versionToBuild}."
+		open "${builtPKGDIR}"/"${versionToBuild}"
 		tput bel
 	fi
 	
