@@ -1,10 +1,11 @@
 #!/bin/bash
-myV="5.1m"
-checkDay="Mon"
+myV="5.2a"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
+# Developer's names, i.e don't update/build all commits 
+theDevs='slice2009 dmazar blusseau' # build commits ONLY FROM THESE!!
 # Retrieve full path of the command
 declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 
@@ -193,6 +194,7 @@ function getREVISIONSedk2(){
 checksvn=`curl -s http://edk2.svn.sourceforge.net/viewvc/edk2/ | grep "Revision"`
 wait
 export edk2REV="${checksvn:53:5}"
+checkit ", edk2 remote SVN ${cloverstats:53:5}" # this sometimes fails, so need to check.
 wait
 if [ "$1" == "Initial" ]; then
 	basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
@@ -232,7 +234,7 @@ function checkURL {
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
-	checkURL "$2" "$1"
+	#checkURL "$2" "$1"
 	if [ ! -d "$1" ]; then
         mkdir "$1"
 		getREVISIONS${1} Initial # flag to write initial revision
@@ -476,30 +478,41 @@ function makePKG(){
 	else
 		echob "${gCloverLoader}"
 	fi
-	echob "Build  Stats:-"
-	echob "             Clover  : revision: ${CloverREV}"
-	echob "             Target  : $target"
-	echob "             Compiler: GCC $gccVers";echo
-	echob "Folder Stats:-"
-	echob "             Work Folder     : $WORKDIR"
-	echob "             Available Space : ${workSpaceAvail} MB"
+	echob "Building Stats:-"
+	echob "              Clover  : revision: ${CloverREV}"
+	echob "              Target  : $target"
+	echob "              Compiler: GCC $gccVers";echo
+	echob "Folder   Stats:-"
+	echob "              Work Folder     : $WORKDIR"
+	echob "              Available Space : ${workSpaceAvail} MB"
 	echo
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
 		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
-            	echob "Clover Update Detected !"
-            	cloverUpdate="Yes"
-            	echo "$CloverREV" > "${CloverDIR}"/Lvers.txt # update the version
-				echob "*********Clover Build STATS***********"
-				echob "*      local  revision at ${cloverLVers}       *"
-				echob "*      remote revision at ${CloverREV}       *"
-				echob "*      Package Built   =  $built        *"
-				echob "**************************************"
-   				echob "svn changes for $CloverREV"
 				cd "${CloverDIR}"
-       			changesSVN=$(svn log -v -r "$CloverREV")
-       			echob "$changesSVN"
+            	theAuthor=$(svn info | grep 'Last Changed Author:')
+            	if [[ "$theAuthor" == "Last Changed Author: pootle-clover" ]]; then
+            		echob "*********Clover Build STATS***********"
+					echob "*      local  revision at ${cloverLVers}       *"
+					echob "*      remote revision at ${CloverREV}       *"
+					echob "*      Package Built   =  $built        *"
+					echob "**************************************"
+					echob "Commit was from 'pootle-clover' so Auto skipping"
+            		return 0
+        	   	else	
+            		echo "$CloverREV" > Lvers.txt # update the version
+            		echob "Clover Update Detected !"
+            		cloverUpdate="Yes"
+            		echob "*********Clover Build STATS***********"
+					echob "*      local  revision at ${cloverLVers}       *"
+					echob "*      remote revision at ${CloverREV}       *"
+					echob "*      Package Built   =  $built        *"
+					echob "**************************************"
+   					echob "svn changes for $CloverREV"
+       				changesSVN=$(svn log -v -r "$CloverREV")
+       				echob "$changesSVN"
+       			fi	
        			tput bel
        			cd ..
        		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
@@ -513,7 +526,7 @@ function makePKG(){
     	fi
     	sleep 3
     else    	
-	      	cloverUpdate="Yes"
+	    cloverUpdate="Yes"
     fi
 	
     if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
