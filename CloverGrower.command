@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2a"
+myV="5.2b"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -598,15 +598,17 @@ function makePKG(){
 		sleep 3
 		[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 		cd "${CloverDIR}"/CloverPackage
-		echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
-		./makepkg "No"
-		wait
-		if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2_r"${versionToBuild}".pkg ]; then 
-			echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
-			echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
-			exit 1
-		else
-			echob "Clover_v2_r${versionToBuild}.pkg	successfully built"
+		if [[ "$myArch" != "i386" ]]; then
+			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
+			./makepkg "No"
+			wait
+			if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2_r"${versionToBuild}".pkg ]; then 
+				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
+				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
+				exit 1
+			else
+				echob "Clover_v2_r${versionToBuild}.pkg	successfully built"
+			fi
 		fi	
 		echob "run ./makeiso"
 		./makeiso "No"
@@ -630,15 +632,20 @@ function makePKG(){
 			fi	
 			echob "Clover revision $CloverREV Compile/MKPkg process took $TTIMEM to complete" 
 		fi
-		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
-		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
-		cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
-		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
-		rm -rf "${CloverDIR}"/CloverPackage/sym
-		echob "rm -rf src/edk2/Build Folder"
-		rm -rf "${buildDIR}"
-		echob "open builtPKG/${versionToBuild}."
-		open "${builtPKGDIR}"/"${versionToBuild}"
+		if [[ "$myArch" != "i386" ]]; then
+			[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
+			echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
+			cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
+			echob "rm -rf src/edk2/Clover/CloverPackage/sym"
+			rm -rf "${CloverDIR}"/CloverPackage/sym
+			echob "rm -rf src/edk2/Build Folder"
+			rm -rf "${buildDIR}"
+			echob "open builtPKG/${versionToBuild}."
+			open "${builtPKGDIR}"/"${versionToBuild}"
+		else
+			echob "open CloverPackage/sym."
+			open "${CloverDIR}"/CloverPackage/sym
+		fi		
 		tput bel
 	fi
 	
