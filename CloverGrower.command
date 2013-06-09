@@ -35,7 +35,7 @@ theLink=/usr/local/bin/clover
 if [[ -L "$theShortcut"/CloverGrower.command ]]; then
 	theLink="$theShortcut"/CloverGrower.command
 fi
-CLOVER_GROWER_DIR_SPACE=`echo "$CLOVER_GROWER_DIR" | tr ' ' '_'`
+# XCode check
 if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
 	echob "      Xcode Command Line Tools from Apple"
@@ -50,6 +50,9 @@ if [ ! -f /usr/bin/gcc ]; then
 	tput bel
 	exit 1
 fi
+
+#check for space in Volume name
+CLOVER_GROWER_DIR_SPACE=`echo "$CLOVER_GROWER_DIR" | tr ' ' '_'`
 if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 	echob "Space in Volume Name Detected!!"
 	echob "Recomend you change Volume Name"
@@ -65,6 +68,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 	exit		
 fi	
 
+# Shortcut and link
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
 	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
 		echob "Running CloverGrower.command"
@@ -119,7 +123,9 @@ theAuthor=""
 export CG_PREFIX="${WORKDIR}"/src/CloverTools
 # Some Flags
 buildClover=0
-
+if [[ ! -f "${WORKDIR}"/vers.txt ]]; then
+	echo $myV >"${WORKDIR}"/vers.txt
+fi	
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
 
 # Check for svn
@@ -447,20 +453,16 @@ function makePKG(){
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562"
 	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home";echo
+	echob "Stats   :-Clover          Stats           :-WorkSpace"
+	echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
+	echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
+	echob "Compiler: GCC $gccVers"
 	echob "$user running '$(basename $CMD)' on '$rootSystem'"
 	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
 	else
 			echob "${gCloverLoader}"
 	fi
-	echob "Building Stats:-"
-	echob "              Clover  : revision: ${CloverREV}"
-	echob "              Target  : $target"
-	echob "              Compiler: GCC $gccVers";echo
-	echob "Folder   Stats:-"
-	echob "              Work Folder     : $WORKDIR"
-	echob "              Available Space : ${workSpaceAvail} MB"
-	echo
 	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
 	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
