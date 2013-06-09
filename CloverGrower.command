@@ -98,6 +98,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 	fi
 fi
 
+
 #vars
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -315,7 +316,7 @@ function cleanRUN(){
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		./ebuild.sh -gcc${mygccVers} -$az -"$style"
 		checkit "Clover$az $theStyle"
-		rm -rf "${buildDIR}"
+		#rm -rf "${buildDIR}" # Don't clean
 	done	
 }
 	
@@ -593,6 +594,7 @@ function makePKG(){
 	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
     	echob "Need getttext for package builder, Fixing..."
     	"${CloverDIR}"/buildgettext.sh
+    	wait
     	checkit "buildtext.sh"
     fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
