@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.2f"
+myV="5.3a"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -182,17 +182,32 @@ fi
 getSOURCEFILE "$1" "$2"
 wait
 }
-				
+
+checkAuthor(){
+	if [ "$1" == "Initial" ] || [ "$2" == "this" ]; then
+		theFlag=""
+	else 
+		theFlag="-r $2"
+	fi	
+	cloverInfo=$(svn --non-interactive --trust-server-cert info ${theFlag} svn://svn.code.sf.net/p/cloverefiboot/code)
+	theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
+	
+}
+
+
 # set up Revisions
 function getREVISIONSClover(){
-cloverInfo=$(svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code)
+checkAuthor "$1" "$2"
+newCloverRev=
 cloverstats=$(echo "$cloverInfo" | grep 'Revision')
 checkit ", Clover remote SVN ${cloverstats:10:10}" # this sometimes fails, so need to check.
 theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 export CloverREV="${cloverstats:10:10}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
-fi			
+else
+	newCloverRev="${CloverREV}"	
+fi	
 #rEFIt
 refitstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
 export rEFItREV="${refitstats:18:10}"
@@ -247,13 +262,19 @@ function getSOURCEFILE() {
 	#checkURL "$2" "$1"
 	if [ ! -d "$1" ]; then
         mkdir "$1"
-		getREVISIONS${1} Initial # flag to write initial revision
+		getREVISIONS${1} Initial this # flag to write initial revision
 		wait
       	echo -n "    Check out $1  "
 		(svn co "$2" "$1" --non-interactive --trust-server-cert >/dev/null) &
 	else
+    	if [ "$1" == "Clover" ] && [ -d "${CloverDIR}"/.svn ]; then
+			theFlag="up --revision ${versionToBuild}"
+		else 
+			theFlag="up"
+		fi
+		cd "$1"	
     	echo -n "    Auto Update $1  "
-    	(cd "$1" && svn up --non-interactive --trust-server-cert >/dev/null) &
+		( svn --non-interactive --trust-server-cert $theFlag >/dev/null) &
     fi
 	spinner $!
 	checkit "  SVN $1"
@@ -441,7 +462,7 @@ function makePKG(){
 	versionToBuild=""
 	cloverUpdate="No"
 	theBuiltVersion=
-	getREVISIONSClover "test" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
+	getREVISIONSClover "test" "this" # get Clover SVN revision, returns in CloverREV, "test" is dummy flag, does NOT write revision in folder
 	versionToBuild="${CloverREV}" # Clover not checked out so use it.
 	#echo "Revision: ${CloverREV}" && exit
 	echo
@@ -498,14 +519,23 @@ function makePKG(){
 				echob "*      Package Built   =  $built        *"
 				echob "**************************************"
 				if [[ "${theBuiltVersion}" != "" ]]; then
-					echob "Commit was from 'pootle-clover' so Auto skipping"
-            		return 0
-            	#elif [[ -d "${builtPKGDIR}"/"${theBuiltVersion}" ]]; then
-            		echob "Continuing…${theBuiltVersion}"
-            		exit	
+					ToBuildVersion=$CloverREV
+					echob "Last successful build was ${theBuiltVersion}"
+					while [ "$theAuthor" == "Last Changed Author: pootle-clover"  ]
+					do
+					echob "Commit was from 'pootle-clover'"
+					echob "so Auto backtracking a revision"
+					let ToBuildVersion--
+					echob "Trying r${ToBuildVersion}"
+					getREVISIONSClover "test" ${ToBuildVersion}
+					echob "Found ${newCloverRev} $theAuthor"
+					done 
+            		echob "Continuing using r${newCloverRev}"
+            		versionToBuild=${newCloverRev}
+            		cloverLVers=${newCloverRev}
+            		newCloverRev="" #  
             	fi	
             fi	
-
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             	cd "${CloverDIR}"
            		echo "$CloverREV" > Lvers.txt # update the version
@@ -523,8 +553,10 @@ function makePKG(){
        			cd ..
        		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
        			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
+       			cloverUpdate="Yes"
     		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
        			echob "Clover_v2_r${versionToBuild}.pkg built"
+       			return 0
        		else
             	echob "No Clover Update found."
             	echob "Current revision: ${cloverLVers}"
