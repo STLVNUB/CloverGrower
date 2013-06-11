@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="5.3a"
+myV="5.3b"
 gccVers="4.8.0" # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -728,9 +728,9 @@ getInstalledLoader(){
 
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
-	if [[ "$1" == "" ]]; then
+	#if [[ "$1" == "" ]]; then
 		checkGCC
-	fi	
+	#fi	
 fi
 getInstalledLoader # check what user is booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
