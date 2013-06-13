@@ -281,12 +281,13 @@ workSpaceAvail="$workSpace"
 theSystem=$(uname -r)
 theSystem="${theSystem:0:2}"
 case "${theSystem}" in
-    [0-8]) sysmess="unsupported" ;;
+    [0-8]) rootSystem="unsupported" ;;
     9) rootSystem="Leopard" ;;
     10) rootSystem="Snow Leopard" ;;
     11) rootSystem="Lion" ;;
     12) rootSystem="Mountain Lion" ;;
-    [13-20]) sysmess="Unknown" ;;
+    13) rootSystem="Mavericks" ;;
+    [14-20]) rootSystem="Unknown" ;;
 esac
 
 function checkCloverLink() {
