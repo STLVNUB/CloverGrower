@@ -141,6 +141,19 @@ function checkConfig() {
         storeConfig 'VBIOS_PATCH_IN_CLOVEREFI' "$VBIOS_PATCH_IN_CLOVEREFI"
         echo
     fi
+
+    if [[ -z "$ONLY_SATA0_PATCH" || -n "$DO_SETUP" ]];then
+        local default_only_sata0_patch='No'
+        [[ "$ONLY_SATA0_PATCH" -ne 0 ]] && \
+         default_only_sata0_patch='Yes'
+        local answer=$(prompt "Activate Only SATA0 Patch by default" \
+         "$default_only_sata0_patch")
+        ONLY_SATA0_PATCH=0
+        [[ $(lc "$answer") == y* ]] && ONLY_SATA0_PATCH=1
+        storeConfig 'ONLY_SATA0_PATCH' "$ONLY_SATA0_PATCH"
+        echo
+    fi
+
 }
 
 function checkUpdate() {
@@ -424,7 +437,7 @@ function getSOURCE() {
 function cleanRUN(){
     local builder=gcc
     local archs=$(echo "$1" | awk '{print toupper($0)}')
-    local ebuild_options=
+    local ebuild_command=("./ebuild.sh" "-gcc${mygccVers}" "-$style")
 
     # Clear the package dir before compilation
     [[ "$versionToBuild" -ge 1166 ]] && ./ebuild.sh cleanpkg &>/dev/null
@@ -438,15 +451,19 @@ function cleanRUN(){
 
     # We can activate VBios Patch in CloverEFI since revision 1162 of Clover
     [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 && "$versionToBuild" -ge 1162 ]] && \
-     ebuild_options="$ebuild_options --vbios-patch-cloverefi"
+     ebuild_command+=("--vbios-patch-cloverefi")
+
+    # We can activate Only SATA0 Patch in CloverEFI since revision 1853 of Clover
+    [[ "$ONLY_SATA0_PATCH" -ne 0 && "$versionToBuild" -ge 1853 ]] && \
+     ebuild_command+=("--only-sata0")
 
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
     local archs=$(lc $archs)
     unset IFS
     for arch in $archs; do
-        echob "running ./ebuild.sh -gcc${mygccVers} -$arch -$style"
-        ./ebuild.sh $ebuild_options -gcc${mygccVers} -$arch -$style
+        echob "running ${ebuild_command[@]} -$arch"
+        ${ebuild_command[@]} -$arch -$style
         checkit "Clover$arch $style"
     done
 
