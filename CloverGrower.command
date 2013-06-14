@@ -1,11 +1,9 @@
 #!/bin/bash
-myV="5.3b"
-gccVers="4.8.0" # use this
+
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
 # Developer's names, i.e don't update/build all commits 
-theDevs='slice2009 dmazar blusseau' # build commits ONLY FROM THESE!!
 # Retrieve full path of the command
 declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 
@@ -104,13 +102,14 @@ fi
 
 
 #vars
+myV="5.3c"
+gccVers="4.8.0" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
-CustomRCFiles="${WORKDIR}"/CustomRCFiles
 srcDIR="${WORKDIR}"/src
 edk2DIR="${srcDIR}"/edk2
 CloverDIR="${edk2DIR}"/Clover
@@ -120,9 +119,9 @@ cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
 theAuthor=""
+style=release
 export CG_PREFIX="${WORKDIR}"/src/CloverTools
-# Some Flags
-buildClover=0
+
 if [[ ! -f "${WORKDIR}"/vers.txt ]]; then
 	echo $myV >"${WORKDIR}"/vers.txt
 fi	
@@ -131,7 +130,6 @@ flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
 # Check for svn
 [[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
 
-style=release
 
 if [[ ! -d "$edk2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
 	echob "error!!! Not enough free space"
@@ -149,12 +147,13 @@ workSpaceAvail="$workSpace"
 theSystem=$(uname -r)
 theSystem="${theSystem:0:2}"
 case "${theSystem}" in
-    [0-8]) sysmess="unsupported" ;;
+    [0-8]) rootSystem="unsupported" ;;
     9) export rootSystem="Leopard" ;;
     10) export rootSystem="Snow Leopard" ;;
     11) export rootSystem="Lion" ;;
     12)	export rootSystem="Mountain Lion" ;;
-    [13-20]) sysmess="Unknown" ;;
+    13)	export rootSystem="Mavericks" ;;
+    [14-20]) rootSystem="Unknown" ;;
 esac
 
 # simple spinner
@@ -172,6 +171,7 @@ function spinner()
     done
     printf "    \b\b\b\b"
 }
+
 function checkSites(){
 checkSiteExists=`curl -s "$2" | grep '404'`
 wait
@@ -191,9 +191,7 @@ checkAuthor(){
 	fi	
 	cloverInfo=$(svn --non-interactive --trust-server-cert info ${theFlag} svn://svn.code.sf.net/p/cloverefiboot/code)
 	theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
-	
 }
-
 
 # set up Revisions
 function getREVISIONSClover(){
@@ -230,7 +228,6 @@ if [ "$1" == "Initial" ]; then
 fi
 }
 
-
 # check URL IS IN FACT, ONLINE, fail IF NOT.
 function checkURL {
 	echob "    Verifying $2 URL"
@@ -253,7 +250,6 @@ function checkURL {
      	echob "    VERIFIED"
      	sleep 1 
     fi
-
 }
 
 # checkout/update svn
@@ -395,53 +391,53 @@ function checkGCC(){
 }
 
 function installGCC(){
-echob "CloverTools NOT installed";echo
-echob "Press 'i' To install GCC$gccVers"
-echob "OR"
-echob "Press RETURN/ENTER' to EXIT CloverGrower"
-read choose
-[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
-[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
-cd "${WORKDIR}"/Files
-echo "  Download and install CloverGrower gcc Compile Tools"
-echob "  To: ${CG_PREFIX}"
-echo "  Press any key to start the process..."
-read
-echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
-echob "  Starting CloverGrower Compile Tools process..." 
-STARTM=$(date -u "+%s")
-date
-(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
-wait    
-tput bel
-cd ..
-if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
-	MakeSymLinks
-	flagTime="Yes"
-	return 
-elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
-	echob " Clover Compile Tools install ERROR: will re-try"
-	checkGCC
-	return
-fi
+	echob "CloverTools NOT installed";echo
+	echob "Press 'i' To install GCC$gccVers"
+	echob "OR"
+	echob "Press RETURN/ENTER' to EXIT CloverGrower"
+	read choose
+	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
+	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
+	cd "${WORKDIR}"/Files
+	echo "  Download and install CloverGrower gcc Compile Tools"
+	echob "  To: ${CG_PREFIX}"
+	echo "  Press any key to start the process..."
+	read
+	echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
+	echob "  Starting CloverGrower Compile Tools process..." 
+	STARTM=$(date -u "+%s")
+	date
+	(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+	wait    
+	tput bel
+	cd ..
+	if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
+		MakeSymLinks
+		flagTime="Yes"
+		return 
+	elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
+		echob " Clover Compile Tools install ERROR: will re-try"
+		checkGCC
+		return
+	fi
 }
 
 # main function
 function Main(){
-STARTD=$(date -j "+%d-%h-%Y")
-theARCHS="$1"
-edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
-echo $(date)
-cloverLocal=${cloverLocal:=''}
-echob "*******************************************"
-echob "$buildMess"
-echob "*    Revisions:- edk2: $edk2Local              *"
-echob "*              Clover: $CloverREV            *"
-echob "*    Using Flags: gcc$mygccVers ${targetBitsMess} $style  *"
-echob "*******************************************"
-STARTT=$(date -j "+%H:%M")
-STARTM=$(date -u "+%s")
-cleanRUN "$theARCHS"
+	STARTD=$(date -j "+%d-%h-%Y")
+	theARCHS="$1"
+	edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
+	echo $(date)
+	cloverLocal=${cloverLocal:=''}
+	echob "*******************************************"
+	echob "$buildMess"
+	echob "*    Revisions:- edk2: $edk2Local              *"
+	echob "*              Clover: $CloverREV            *"
+	echob "*    Using Flags: gcc$mygccVers ${targetBitsMess} $style  *"
+	echob "*******************************************"
+	STARTT=$(date -j "+%H:%M")
+	STARTM=$(date -u "+%s")
+	cleanRUN "$theARCHS"
 }
 
 autoBuild(){
@@ -551,7 +547,7 @@ function makePKG(){
    				echob "$changesSVN"
        			tput bel
        			cd ..
-       		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
+       		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]] && [[ "${versionToBuild}" != "${cloverLVers}" ]]; then
        			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
        			cloverUpdate="Yes"
     		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
@@ -592,10 +588,14 @@ function makePKG(){
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
+    if [[ -f "${CloverDIR}/ebuild.sh.CG" ]] && [ $(stat -f '%m' "${CloverDIR}/ebuild.sh") -lt $(stat -f '%m' "${CloverDIR}/ebuild.sh.CG") ]; then
+    	echob "    ebuild.sh Updated, rm original"
+    	rm "${CloverDIR}/ebuild.sh.CG"
+   	fi
     if [[ ! -f "${CloverDIR}/ebuild.sh.CG" ]]; then
          # Patch ebuild.sh
-       echob "    Patching ebuild to GCC${mygccVers}"
-       sed -i'.CG' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
+       	echob "    Patching ebuild to GCC${mygccVers}"
+       	sed -i'.CG' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
          "${CloverDIR}/ebuild.sh"
        wait
        checkit "    Patched Clover ebuild.sh"
@@ -728,9 +728,7 @@ getInstalledLoader(){
 
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
-	#if [[ "$1" == "" ]]; then
 		checkGCC
-	#fi	
 fi
 getInstalledLoader # check what user is booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
