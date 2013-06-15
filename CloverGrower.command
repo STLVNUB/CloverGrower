@@ -3,7 +3,6 @@
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
-# Developer's names, i.e don't update/build all commits 
 # Retrieve full path of the command
 declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 
@@ -102,8 +101,8 @@ fi
 
 
 #vars
-myV="5.3c"
-gccVers="4.8.0" # use this
+myV="5.3d"
+gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
@@ -120,7 +119,7 @@ builtPKGDIR="${WORKDIR}"/builtPKG
 theBuiltVersion=""
 theAuthor=""
 style=release
-export CG_PREFIX="${WORKDIR}"/src/CloverTools
+export CG_PREFIX="${TOOLCHAIN}"/CloverTools
 
 if [[ ! -f "${WORKDIR}"/vers.txt ]]; then
 	echo $myV >"${WORKDIR}"/vers.txt
@@ -338,7 +337,7 @@ function cleanRUN(){
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		./ebuild.sh -gcc${mygccVers} -$az -"$style"
-		checkit "Clover$az $theStyle"
+		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}" # Don't clean
 	done	
 }
