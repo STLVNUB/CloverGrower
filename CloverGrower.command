@@ -101,7 +101,7 @@ fi
 
 
 #vars
-myV="5.3d"
+myV="5.3f"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -281,25 +281,37 @@ function getSOURCE() {
         echob "    Make src Folder.."
         mkdir "${srcDIR}"
     fi
-   
+   	edk2Update="Yes"
     # Don't update edk2 if no Clover updates
     if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" ]]; then
+    	if [[ -d "${edk2DIR}"/.svn ]]; then # ger svn revision
+    		getREVISIONSedk2 test
+    		Ledk2=`cat "${edk2DIR}"/Lvers.txt`
+			if [[ "$edk2REV" == "$Ledk2" ]]; then
+				echob "edk2 revision same" # same return
+				edk2Update="No"
+			else
+				echob "edk2 Updated from $Ledk2	to $edk2REV" # updated
+			fi
+		fi		   	  	
         # Get edk2 source
-        cd "${srcDIR}"
-	    getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	    wait
-	    if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
-	    	if [[ "${cloverUpdate}" == "Yes" ]]; then
-				basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
-				basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
-				Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
-			    if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
-			    	echob "    BaseTools @ Revision $basetools"
-					echob "    Updated BaseTools Detected"
-					echo -n "    Clean EDK II BaseTools "
-					make -C "${edk2DIR}"/BaseTools clean >/dev/null
-					wait
-				fi								
+        if [[ "$edk2Update" == "Yes" ]]; then
+        	cd "${srcDIR}"
+	    	getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+	    	wait
+	        if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
+	    		if [[ "${cloverUpdate}" == "Yes" ]]; then
+					basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
+					basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+					Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
+			    	if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
+			    		echob "    BaseTools @ Revision $basetools"
+						echob "    Updated BaseTools Detected"
+						echo -n "    Clean EDK II BaseTools "
+						make -C "${edk2DIR}"/BaseTools clean >/dev/null
+						wait
+					fi
+				fi									
 			fi	
 		fi	
 	fi
@@ -528,7 +540,8 @@ function makePKG(){
             		echob "Continuing using r${newCloverRev}"
             		versionToBuild=${newCloverRev}
             		cloverLVers=${newCloverRev}
-            		newCloverRev="" #  
+            		newCloverRev="" #
+            		cloverUpdate="Yes"
             	fi	
             fi	
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
@@ -561,7 +574,6 @@ function makePKG(){
     else    	
 	    cloverUpdate="Yes"
     fi
-	
     if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
     	getREVISIONSedk2 "test"
     	if [[ -d "${edk2DIR}"/.svn ]]; then
