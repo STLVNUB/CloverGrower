@@ -65,6 +65,27 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 	exit		
 fi	
 
+#vars
+myV="5.3g"
+gccVers="4.8.1" # use this
+export WORKDIR="${CLOVER_GROWER_DIR}"
+export TOOLCHAIN="${WORKDIR}/toolchain"
+workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
+workSpaceNeeded="522"
+workSpaceMin="104"
+filesDIR="${WORKDIR}"/Files
+srcDIR="${WORKDIR}"/src
+edk2DIR="${srcDIR}"/edk2
+CloverDIR="${edk2DIR}"/Clover
+rEFItDIR="${CloverDIR}"/rEFIt_UEFI
+buildDIR="${edk2DIR}"/Build
+cloverPKGDIR="${CloverDIR}"/CloverPackage
+builtPKGDIR="${WORKDIR}"/builtPKG
+theBuiltVersion=""
+theAuthor=""
+style=release
+export CG_PREFIX="${TOOLCHAIN}"/CloverTools
+
 # Shortcut and link
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
 	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
@@ -98,28 +119,6 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 		echob "$command" ; eval "$command"
 	fi
 fi
-
-
-#vars
-myV="5.3f"
-gccVers="4.8.1" # use this
-export WORKDIR="${CLOVER_GROWER_DIR}"
-export TOOLCHAIN="${WORKDIR}/toolchain"
-workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
-workSpaceNeeded="522"
-workSpaceMin="104"
-filesDIR="${WORKDIR}"/Files
-srcDIR="${WORKDIR}"/src
-edk2DIR="${srcDIR}"/edk2
-CloverDIR="${edk2DIR}"/Clover
-rEFItDIR="${CloverDIR}"/rEFIt_UEFI
-buildDIR="${edk2DIR}"/Build
-cloverPKGDIR="${CloverDIR}"/CloverPackage
-builtPKGDIR="${WORKDIR}"/builtPKG
-theBuiltVersion=""
-theAuthor=""
-style=release
-export CG_PREFIX="${TOOLCHAIN}"/CloverTools
 
 if [[ ! -f "${WORKDIR}"/vers.txt ]]; then
 	echo $myV >"${WORKDIR}"/vers.txt
@@ -721,7 +720,7 @@ getInstalledLoader(){
     if [[ "$gTheLoader" != "" ]]; then
     	gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
             "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g' )
-        gCloverLoader="Booting with ${gTheLoader} UEFI using CloverEFI_${efiBITS} r${gRefitVers}"
+        gCloverLoader="Booting via Clover r${gRefitVers} BOOT${efiBITS}.efi with ${gTheLoader} UEFI"
     elif [[ "$gTheLoader" == "" ]]; then
         gTheLoader="Unknown_${efiBITS}"
 	elif [[ "$gTheLoader" == "CLOVER" ]]; then
