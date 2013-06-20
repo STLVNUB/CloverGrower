@@ -157,6 +157,13 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -n "$DO_SETUP" ]];then
+        local default_ebuild_optional_args=''
+        EBUILD_OPTIONAL_ARGS=$(prompt "Additionnal parameters to pass to ebuild.sh script" "${EBUILD_OPTIONAL_ARGS:-}")
+        storeConfig 'EBUILD_OPTIONAL_ARGS' "$EBUILD_OPTIONAL_ARGS"
+        echo
+    fi
+
 }
 
 function checkUpdate() {
@@ -460,6 +467,8 @@ function cleanRUN(){
     # We can activate Only SATA0 Patch in CloverEFI since revision 1853 of Clover
     [[ "$ONLY_SATA0_PATCH" -ne 0 && "$versionToBuild" -ge 1853 ]] && \
      ebuild_command+=("--only-sata0")
+
+    [[ -n "${EBUILD_OPTIONAL_ARGS:-}" ]] && ebuild_command+=($EBUILD_OPTIONAL_ARGS)
 
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
