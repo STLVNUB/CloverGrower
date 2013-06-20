@@ -107,13 +107,16 @@ function checkConfig() {
 
     if [[ -z "$CLOVERSVNURL" || -n "$DO_SETUP" ]]; then
         local default_developer='No'
+        local default_login=''
         case "$CLOVERSVNURL" in
-            *svn+ssh:*) default_developer='Yes';;
+            *svn+ssh:*) default_developer='Yes'
+                        default_login=$(echo "$CLOVERSVNURL" | sed -nE 's#.*//(.+)@.*#\1#p')
+                        ;;
         esac
         local developer=$(prompt "Do you have the rights to commit Clover source files" "$default_developer")
         local login
         if [[ $(lc "$developer") == y* ]];then
-            login=$(prompt "What is your login on sourceforge.net" "")
+            login=$(prompt "What is your login on sourceforge.net" "$default_login")
         fi
         if [[ -n "$login" ]];then
             CLOVERSVNURL="svn+ssh://$login@svn.code.sf.net/p/cloverefiboot/code"
