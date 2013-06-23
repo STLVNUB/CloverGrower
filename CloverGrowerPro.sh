@@ -238,8 +238,8 @@ done
 set +e
 
 checkOptions
-checkConfig
 checkUpdate
+checkConfig
 
 target="${force_target:-$DEFAULT_TARGET}"
 unset force_target
