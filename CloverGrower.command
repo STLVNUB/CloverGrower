@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3g"
+myV="5.3h"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -212,14 +212,14 @@ wait
 
 # set up Revisions
 function getREVISIONSedk2(){
-checksvn=`curl -s http://edk2.svn.sourceforge.net/viewvc/edk2/ | grep "Revision"`
+checksvn=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision"`
 wait
-export edk2REV="${checksvn:53:5}"
-checkit ", edk2 remote SVN ${cloverstats:53:5}" # this sometimes fails, so need to check.
+export edk2REV="${checksvn:10:5}"
+checkit ", edk2 remote SVN ${checksvn:10:5}" # this sometimes fails, so need to check.
 wait
 if [ "$1" == "Initial" ]; then
-	basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
-	basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+	basestats=`svn info -s  svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
+	basetools="${basestats:10:5}" # grab basetools revision, rebuild tools IF revision has changed
 	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
 	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
 	wait
@@ -296,12 +296,12 @@ function getSOURCE() {
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
         	cd "${srcDIR}"
-	    	getSOURCEFILE edk2 "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+	    	getSOURCEFILE edk2  svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
 	        if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
 	    		if [[ "${cloverUpdate}" == "Yes" ]]; then
-					basestats=`curl -s  http://edk2.svn.sourceforge.net/viewvc/edk2/trunk/edk2/BaseTools/ | grep 'Revision'`
-					basetools="${basestats:53:5}" # grab basetools revision, rebuild tools IF revision has changed
+					basestats=`svn info -s  svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
+					basetools="${basestats:10:5}" # grab basetools revision, rebuild tools IF revision has changed
 					Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
 			    	if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
 			    		echob "    BaseTools @ Revision $basetools"
