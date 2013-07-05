@@ -397,12 +397,13 @@ function getSOURCEFILE() {
     printf "    %s %s %s %s ...\n" "$(sayColor info Auto Updating $name From)" "$(sayColor yellow $localRev)" "$(sayColor info 'to')" "$(sayColor green $checkoutRev)"
     tput bel
     if [[ "$localdir" == */Clover ]]; then
-        update_repository "$localdir" "$checkoutRev"
+        update_repository --remote-url="$svnremoteurl" --force-revision="$checkoutRev" "$localdir"
     else
-        update_repository "$localdir"
+        update_repository --remote-url="$svnremoteurl" "$localdir"
     fi
     checkit "    Svn up $name" "$svnremoteurl"
-    return 1
+
+	return 1
 }
 
 # sets up svn sources
@@ -418,7 +419,7 @@ function getSOURCE() {
     if [[ "${cloverUpdate}" == "Yes" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
-        getSOURCEFILE edk2 "$EDK2DIR" "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+        getSOURCEFILE edk2 "$EDK2DIR" "svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
         local buildBaseTools=$?
 
         # Is edk2 need to be update

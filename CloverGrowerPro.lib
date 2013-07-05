@@ -258,8 +258,28 @@ function update_git_svn_repository() {
 }
 
 function update_svn_repository() {
-    local forcerevision="$1"
+    local remoteurl=
+    local forcerevision=
     local svn_option=
+
+    # Check the arguments.
+    while [[ $# -gt 0 ]];do
+        local option="$1"
+        case "$option" in
+            --force-revision=*) shift; forcerevision="${option#*=}" ;;
+            --remote-url=*)     shift; remoteurl="${option#*=}" ;;
+            -*) die "Unrecognized update_svn_repository option '$option'" ;;
+            *)  die "update_svn_repository too many arguments" ;;
+        esac
+    done
+
+    # Relocate URL if changed
+    local svn_url=$(LC_ALL=C svn info . | sed -n 's/^URL: *//p')
+    if [[ "$svn_url" != "$remoteurl" ]]; then
+        say "    Switching to new URL: $svn_url"
+        svn relocate "$remoteurl"
+    fi
+
     [[ -n "$forcerevision" ]] && svn_option="-r $forcerevision"
     local pending=$(svn status | sed -n 's/^[AM] *//p')
     if [[ -z "$pending" ]];then
@@ -278,13 +298,36 @@ function update_svn_repository() {
 
 # Function that update an svn or git-svn local repository
 function update_repository() {
-    local localdir="$1"
-    local forcerevision="${2:-}"
+
+    local localdir=
+    local remoteurl=
+    local forcerevision=
     local repotype='svn'
+
+    # Check the arguments.
+    while [[ $# -gt 0 ]];do
+        local option="$1"
+        case "$option" in
+            --force-revision=*) shift; forcerevision="${option#*=}" ;;
+            --remote-url=*)     shift; remoteurl="${option#*=}" ;;
+            -*) die "Unrecognized update_repository option '$option'" ;;
+            *)  break ;;
+        esac
+    done
+
+    [[ $# -lt 1 ]] && \
+     die "update_repository invalid number of arguments: localdir is needed"
+
+    [[ -z "$remoteurl" ]] && \
+     die "update_repository invalid number of arguments: remoteurl is needed"
+
+    localdir="$1"
+
     [[ -d "${localdir}/.git" ]] && repotype='git'
     case "$repotype" in
         svn)
-             (cd "$localdir" && update_svn_repository "$forcerevision")
+             (cd "$localdir" && update_svn_repository \
+              --force-revision="$forcerevision" --remote-url="$remoteurl")
              ;;
         git)
              (cd "$localdir" && update_git_svn_repository "$forcerevision")
@@ -293,7 +336,7 @@ function update_repository() {
            exit 1
            ;;
     esac
-    return 0
+    return $?
 }
 
 # Local Variables:      #
