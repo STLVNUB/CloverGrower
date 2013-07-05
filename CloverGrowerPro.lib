@@ -276,8 +276,8 @@ function update_svn_repository() {
     # Relocate URL if changed
     local svn_url=$(LC_ALL=C svn info . | sed -n 's/^URL: *//p')
     if [[ "$svn_url" != "$remoteurl" ]]; then
-        say "    Switching to new URL: $svn_url"
-        svn relocate "$remoteurl"
+        say "    Switching to new URL: $remoteurl"
+        svn switch --relocate "$svn_url" "$remoteurl"
     fi
 
     [[ -n "$forcerevision" ]] && svn_option="-r $forcerevision"
