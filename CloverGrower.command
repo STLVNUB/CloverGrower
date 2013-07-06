@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3h"
+myV="5.3j"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -170,17 +170,6 @@ function spinner()
     printf "    \b\b\b\b"
 }
 
-function checkSites(){
-checkSiteExists=`curl -s "$2" | grep '404'`
-wait
-if [[ "${checkSitExists:7:13}" == "404 Not Found" ]]; then
-	echob "$1 ERROR!"
-	exit 1
-fi
-getSOURCEFILE "$1" "$2"
-wait
-}
-
 checkAuthor(){
 	if [ "$1" == "Initial" ] || [ "$2" == "this" ]; then
 		theFlag=""
@@ -191,14 +180,14 @@ checkAuthor(){
 	theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 }
 
-# set up Revisions
+# set up Revisions Clover
 function getREVISIONSClover(){
 checkAuthor "$1" "$2"
 newCloverRev=
 cloverstats=$(echo "$cloverInfo" | grep 'Revision')
-checkit ", Clover remote SVN ${cloverstats:10:10}" # this sometimes fails, so need to check.
-theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 export CloverREV="${cloverstats:10:10}"
+checkit ", Clover remote SVN ${CloverREV}" # this sometimes fails, so need to check.
+theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
 else
@@ -210,15 +199,15 @@ export rEFItREV="${refitstats:18:10}"
 wait
 }
 
-# set up Revisions
+# set up Revisions edk2
 function getREVISIONSedk2(){
 checksvn=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision"`
 wait
 export edk2REV="${checksvn:10:5}"
-checkit ", edk2 remote SVN ${checksvn:10:5}" # this sometimes fails, so need to check.
+checkit ", edk2 remote SVN ${edk2REV}" # this sometimes fails, so need to check.
 wait
 if [ "$1" == "Initial" ]; then
-	basestats=`svn info -s  svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
+	basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
 	basetools="${basestats:10:5}" # grab basetools revision, rebuild tools IF revision has changed
 	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
 	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
@@ -226,34 +215,9 @@ if [ "$1" == "Initial" ]; then
 fi
 }
 
-# check URL IS IN FACT, ONLINE, fail IF NOT.
-function checkURL {
-	echob "    Verifying $2 URL"
-	echob "    $1"
-	curl -s -o "/dev/null" "$1"
-	wait
-    if [ $? -ne 0 ] ; then
-        echob "    Error occurred"
-        if [[ "$2" != "gcc" ]]; then
-        	if [ $? -eq 6 ]; then
-            	echob "    Unable to resolve host"
-        	fi
-        	if [$? -eq 7 ]; then
-            	echob "    Unable to connect to host"
-        	fi
-        	echob "    Appears to be URL Problem"
-        	exit 1
-        fi
-    else
-     	echob "    VERIFIED"
-     	sleep 1 
-    fi
-}
-
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
-	#checkURL "$2" "$1"
 	if [ ! -d "$1" ]; then
         mkdir "$1"
 		getREVISIONS${1} Initial this # flag to write initial revision
@@ -300,7 +264,7 @@ function getSOURCE() {
 	    	wait
 	        if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
 	    		if [[ "${cloverUpdate}" == "Yes" ]]; then
-					basestats=`svn info -s  svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
+					basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Revision'`
 					basetools="${basestats:10:5}" # grab basetools revision, rebuild tools IF revision has changed
 					Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
 			    	if [[ "$basetools" -gt "$Lbasetools" ]]; then # rebuild tools IF revision has changed
@@ -479,17 +443,18 @@ function makePKG(){
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562"
-	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home";echo
-	echob "Stats   :-Clover          Stats           :-WorkSpace"
-	echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
-	echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
-	echob "Compiler: GCC $gccVers"
-	echob "$user running '$(basename $CMD)' on '$rootSystem'"
+	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home"
 	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
 	else
 			echob "${gCloverLoader}"
 	fi
+	echo
+	echob "Stats   :-Clover          Stats           :-WorkSpace"
+	echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
+	echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
+	echob "Compiler: GCC $gccVers"
+	echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
 	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
 	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
