@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3k"
+myV="5.3l"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -247,7 +247,7 @@ function getSOURCE() {
    	edk2Update="Yes"
     # Don't update edk2 if no Clover updates
     if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" ]]; then
-    	if [[ -d "${edk2DIR}"/.svn ]]; then # ger svn revision
+    	if [[ -d "${edk2DIR}"/.svn ]]; then # get svn revision
     		getREVISIONSedk2 test
     		Ledk2=`cat "${edk2DIR}"/Lvers.txt`
 			if [[ "$edk2REV" == "$Ledk2" ]]; then
@@ -262,6 +262,7 @@ function getSOURCE() {
         	cd "${srcDIR}"
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
+	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
 	        if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
 	    		if [[ "${cloverUpdate}" == "Yes" ]]; then
 					basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev'`
