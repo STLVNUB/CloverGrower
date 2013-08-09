@@ -66,11 +66,12 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3l"
+myV="5.3n"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
+workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
@@ -81,6 +82,10 @@ rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
+if [ -d "${builtPKGDIR}" ]; then
+	workSpacePKGDIR=$(du -sh "${builtPKGDIR}" | tail -n1 | awk '{ print $1 }')
+fi
+
 theBuiltVersion=""
 theAuthor=""
 style=release
@@ -133,9 +138,14 @@ if [[ ! -d "$edk2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
 	echob "error!!! Not enough free space"
 	echob "Need at least $workSpaceNeeded bytes free"
 	echob "Only have $workSpace bytes"
-	echob "move CloverGrower to different Folder"
-	echob "OR free some space"
-	exit 1
+	if [ "$workSpacePKGDIR" == "" ]; then
+		echob "move CloverGrower to different Folder"
+		echob "OR free some space"
+		exit 1
+	else
+		echob "You have $workSpacePKGDIR MB in builtPKGDIR"
+		exit 1
+	fi			
 elif [[ "$workSpace" -lt "$workSpaceMin" ]]; then
 	echob "Getting low on free space"
 fi
@@ -382,7 +392,7 @@ function installGCC(){
 	echob "  Starting CloverGrower Compile Tools process..." 
 	STARTM=$(date -u "+%s")
 	date
-	(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+	(./buildgccNew.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
 	wait    
 	tput bel
 	cd ..
@@ -454,7 +464,7 @@ function makePKG(){
 	echob "Stats   :-Clover          Stats           :-WorkSpace"
 	echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
 	echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
-	echob "Compiler: GCC $gccVers"
+	echob "Compiler: GCC $gccVers       builtPKGDIR     : ${workSpacePKGDIR}"
 	echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
 	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
 	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
