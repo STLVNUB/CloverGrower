@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3n"
+myV="5.3o"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -322,7 +322,7 @@ function cleanRUN(){
 	cd "${CloverDIR}"
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
-		./ebuild.sh -gcc${mygccVers} -$az -"$style"
+		./ebuild.sh --tagname=GCC${mygccVers} -$az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}" # Don't clean
 	done	
@@ -573,18 +573,6 @@ function makePKG(){
    	if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then  # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
-    fi
-    if [[ -f "${CloverDIR}/ebuild.sh.CG" ]] && [ $(stat -f '%m' "${CloverDIR}/ebuild.sh") -lt $(stat -f '%m' "${CloverDIR}/ebuild.sh.CG") ]; then
-    	echob "    ebuild.sh Updated, rm original"
-    	rm "${CloverDIR}/ebuild.sh.CG"
-   	fi
-    if [[ ! -f "${CloverDIR}/ebuild.sh.CG" ]]; then
-         # Patch ebuild.sh
-       	echob "    Patching ebuild to GCC${mygccVers}"
-       	sed -i'.CG' -e "s!export TOOLCHAIN=GCC47!export TOOLCHAIN=GCC${mygccVers}!g" -e "s!-gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;!-gcc${mygccVers}  | --gcc${mygccVers})   TOOLCHAIN=GCC${mygccVers}   ;;!g" \
-         "${CloverDIR}/ebuild.sh"
-       wait
-       checkit "    Patched Clover ebuild.sh"
     fi
     if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.CG ]]; then
     	# Remove old edk2 config files
