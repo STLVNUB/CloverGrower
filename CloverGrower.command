@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3o"
+myV="5.3p"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -655,8 +655,8 @@ function makePKG(){
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
 		rm -rf "${buildDIR}"
-		echob "open builtPKG/${versionToBuild}."
-		open "${builtPKGDIR}"/"${versionToBuild}"
+		echob "Auto open Clover_v2_r${versionToBuild}.pkg."
+		open "${builtPKGDIR}"/"${versionToBuild}/Clover_v2_r${versionToBuild}.pkg"
 		tput bel
 	fi
 	
