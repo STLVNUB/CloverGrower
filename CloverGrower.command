@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3p"
+myV="5.3q"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -279,9 +279,9 @@ function getSOURCE() {
 					basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
 					Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
 			    	if [[ "${basetools}" != "${Lbasetools}" ]]; then # rebuild tools IF revision has changed
-			    		echob "    BaseTools @ Revision $basetools"
-						echob "    Updated BaseTools Detected"
-						echo -n "    Clean EDK II BaseTools "
+						echob "    Updated BaseTools Detected!!!"
+			    		echo "    BaseTools @ Revision $basetools"
+						echo "    Clean EDK II BaseTools "
 						make -C "${edk2DIR}"/BaseTools clean >/dev/null
 						wait
 					fi
