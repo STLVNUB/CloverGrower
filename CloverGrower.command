@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3q"
+myV="5.3r"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -283,6 +283,7 @@ function getSOURCE() {
 			    		echo "    BaseTools @ Revision $basetools"
 						echo "    Clean EDK II BaseTools "
 						make -C "${edk2DIR}"/BaseTools clean >/dev/null
+						echo "${basetools}" >"${edk2DIR}"/Lbasetools.txt
 						wait
 					fi
 				fi									
@@ -290,7 +291,7 @@ function getSOURCE() {
 		fi	
 	fi
 	cd "${edk2DIR}"
-	if [[ ! -f ./Basetools/Source/C/bin/VfrCompile  && -f ./edksetup.sh ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
+	if [[ ! -f Basetools/Source/C/bin/VfrCompile  && -f ./edksetup.sh ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
       	echo -n "    Make edk2 BaseTools.. "
         make -C "${edk2DIR}"/BaseTools &>/dev/null &
         spinner $!
@@ -574,25 +575,23 @@ function makePKG(){
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
-    if [[ ! -f "${edk2DIR}"/Conf/tools_def.txt.CG ]]; then
-    	# Remove old edk2 config files
-      	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
-		wait
-       	# Create new default edk2 files in edk2/Conf
-      	"${edk2DIR}"/edksetup.sh >/dev/null
-    	# get configuration files from Clover
-        cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
-        cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
-
-       # Patch edk2/Conf/tools_def.txt for GCC
-       	echob "Patching tools_def.txt to GCC${mygccVers}"
-        sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
-        "${edk2DIR}"/Conf/tools_def.txt
-        wait
-        checkit "    Patched edk2 Conf/tools_def.txt"
-    fi
+   	# Remove old edk2 config files
+   	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
+	wait
+   	# Create new default edk2 files in edk2/Conf
+   	cd "${edk2DIR}"
+   	"${edk2DIR}"/edksetup.sh >/dev/null
+  	# get configuration files from Clover
+    cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
+    cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
+    # Patch edk2/Conf/tools_def.txt for GCC
+    echob "Patching tools_def.txt to GCC${mygccVers}"
+    sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
+    "${edk2DIR}"/Conf/tools_def.txt
+    wait
+    checkit "    Patched edk2 Conf/tools_def.txt"
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
-    sleep 3
+    sleep 1
     autoBuild "$1"
     tput bel
     echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
