@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4a"
+myV="5.4b"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -180,20 +180,23 @@ function spinner()
     printf "    \b\b\b\b"
 }
 
-# check for gem on ML and install Terminal-notifier if found
+# use Terminal-notifier
 function installTN(){
 if [ -f /usr/bin/gem ] && [ ! -f /usr/bin/terminal-notifier ]; then
 	echob "Need to install Terminal-notifier"
 	sudo gem install Terminal-notifier
-elif [ -f /usr/bin/terminal-notifier ]; then
-	 notify "Welcome $user" 
 fi
+notify "Welcome $user"
 }
-		
+			
 function notify(){
+if [ -f /usr/bin/terminal-notifier ]; then
 	Title="CloverGrower V$myV"
 	#$1 = Message
 	terminal-notifier -message "$1" -title "$Title"
+else
+	echob "$1"
+fi		
 }	
 
 function checkAuthor(){
@@ -726,4 +729,4 @@ buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-echob "Good $hours $user, Thanks for using CloverGrower V$myV" 
+notify "Good $hours $user, Thanks for using CloverGrower V$myV" 
