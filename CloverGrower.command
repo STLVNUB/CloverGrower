@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4b"
+myV="5.4c"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -75,6 +75,7 @@ workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
+notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
 srcDIR="${WORKDIR}"/src
 edk2DIR="${srcDIR}"/edk2
 CloverDIR="${edk2DIR}"/Clover
@@ -179,21 +180,12 @@ function spinner()
     done
     printf "    \b\b\b\b"
 }
-
-# use Terminal-notifier
-function installTN(){
-if [ -f /usr/bin/gem ] && [ ! -f /usr/bin/terminal-notifier ]; then
-	echob "Need to install Terminal-notifier"
-	sudo gem install Terminal-notifier
-fi
-notify "Welcome $user"
-}
-			
+		
 function notify(){
-if [ -f /usr/bin/terminal-notifier ]; then
+if [ -f "${notifier}" ] && [ "${theSystem}" -ge "12" ]; then
 	Title="CloverGrower V$myV"
 	#$1 = Message
-	terminal-notifier -message "$1" -title "$Title"
+	"${notifier}" -message "$1" -title "$Title"
 else
 	echob "$1"
 fi		
@@ -718,7 +710,7 @@ getInstalledLoader(){
         fi
     fi  
 }
-installTN
+notify "Welcome $user"
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
 		checkGCC
