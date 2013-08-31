@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3r"
+myV="5.3s"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -196,7 +196,6 @@ checkAuthor "$1" "$2"
 newCloverRev=
 cloverstats=$(echo "$cloverInfo" | grep 'Revision')
 export CloverREV="${cloverstats:10:10}"
-checkit ", Clover remote SVN ${CloverREV}" # this sometimes fails, so need to check.
 theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
@@ -261,10 +260,10 @@ function getSOURCE() {
     		getREVISIONSedk2 test
     		Ledk2=`cat "${edk2DIR}"/Lvers.txt`
 			if [[ "$edk2REV" == "$Ledk2" ]]; then
-				echob "edk2 revision same" # same return
+				echob "edk2 svn revision = edk2 local revision ( $edk2REV )" # same return
 				edk2Update="No"
 			else
-				echob "edk2 Updated from $Ledk2	to $edk2REV" # updated
+				echob "edk2 local will be updated from $Ledk2	to $edk2REV" # updated
 			fi
 		fi		   	  	
         # Get edk2 source
@@ -285,6 +284,8 @@ function getSOURCE() {
 						make -C "${edk2DIR}"/BaseTools clean >/dev/null
 						echo "${basetools}" >"${edk2DIR}"/Lbasetools.txt
 						wait
+					else
+						echob "    Basetools revision @ ${Lbasetools}"
 					fi
 				fi									
 			fi	
