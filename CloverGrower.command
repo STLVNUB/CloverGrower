@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.3s"
+myV="5.4a"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -180,7 +180,23 @@ function spinner()
     printf "    \b\b\b\b"
 }
 
-checkAuthor(){
+# check for gem on ML and install Terminal-notifier if found
+function installTN(){
+if [ -f /usr/bin/gem ] && [ ! -f /usr/bin/terminal-notifier ]; then
+	echob "Need to install Terminal-notifier"
+	sudo gem install Terminal-notifier
+elif [ -f /usr/bin/terminal-notifier ]; then
+	 notify "Welcome $user" 
+fi
+}
+		
+function notify(){
+	Title="CloverGrower V$myV"
+	#$1 = Message
+	terminal-notifier -message "$1" -title "$Title"
+}	
+
+function checkAuthor(){
 	if [ "$1" == "Initial" ] || [ "$2" == "this" ]; then
 		theFlag=""
 	else 
@@ -524,7 +540,7 @@ function makePKG(){
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             	cd "${CloverDIR}"
            		echo "$CloverREV" > Lvers.txt # update the version
-           		echob "Clover Update Detected !"
+           		notify "Clover Update Detected !"
            		cloverUpdate="Yes"
            		echob "*********Clover Build STATS***********"
 				echob "*      local  revision at ${cloverLVers}       *"
@@ -699,12 +715,12 @@ getInstalledLoader(){
         fi
     fi  
 }
-
+installTN
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
 		checkGCC
 fi
-getInstalledLoader # check what user is booting with ;)
+getInstalledLoader # check what user is Booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
