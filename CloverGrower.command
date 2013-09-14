@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4f"
+myV="5.4g"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -481,7 +481,7 @@ function makePKG(){
 	echob "Compiler: GCC $gccVers       builtPKGDIR     : ${workSpacePKGDIR}"
 	echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
 	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
-	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
+	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
 		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
 			built="Yes"
 		else
@@ -492,7 +492,7 @@ function makePKG(){
 		echob "*      remote revision at ${CloverREV}       *" 
 		echob "*      local  revision at ${versionToBuild}       *"
 		if [ "$built" == "Yes" ]; then
-			echob "* Clover_v2_r${versionToBuild}.pkg ALREADY Made!  *"
+			echob "* Clover_v2k_r${versionToBuild}.pkg ALREADY Made!  *"
 			echob "**************************************"
 			if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
 					echob "Updated package (${versionToBuild}) NOT installed!!"
@@ -548,11 +548,11 @@ function makePKG(){
    				echob "$changesSVN"
        			tput bel
        			cd ..
-       		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]] && [[ "${versionToBuild}" != "${cloverLVers}" ]]; then
-       			echob "Clover_v2_r${versionToBuild}.pkg NOT built"
+       		elif [[ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]] && [[ "${versionToBuild}" != "${cloverLVers}" ]]; then
+       			echob "Clover_v2k_r${versionToBuild}.pkg NOT built"
        			cloverUpdate="Yes"
-    		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]]; then
-       			echob "Clover_v2_r${versionToBuild}.pkg built"
+    		elif [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]]; then
+       			echob "Clover_v2k_r${versionToBuild}.pkg built"
        			return 0
        		else
             	echob "No Clover Update found."
@@ -618,21 +618,21 @@ function makePKG(){
     	wait
     	checkit "buildtext.sh"
     fi
-	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_r${versionToBuild}".pkg ]; then # make pkg if not there
+	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]; then # make pkg if not there
 		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
 			[[ -f "${builtPKGDIR}/${versionToBuild}" ]] && rm -rf "${builtPKGDIR}/${versionToBuild}" # need to delete in case of failed build
-			echob "Making Clover_v2_r${versionToBuild}.pkg..."
+			echob "Making Clover_v2k_r${versionToBuild}.pkg..."
 			[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
 			wait
-			if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2_r"${versionToBuild}".pkg ]; then 
+			if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2k_r${versionToBuild}.pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
 				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
 				exit 1
 			else
-				echob "Clover_v2_r${versionToBuild}.pkg	successfully built"
+				echob "Clover_v2k_r${versionToBuild}.pkg	successfully built"
 			fi
 		fi	
 		echob "run ./makeiso"
@@ -667,8 +667,8 @@ function makePKG(){
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
-		echob "Auto open Clover_v2_r${versionToBuild}.pkg."
-		open "${builtPKGDIR}"/"${versionToBuild}/Clover_v2_r${versionToBuild}.pkg"
+		echob "Auto open Clover_v2k_r${versionToBuild}.pkg."
+		open "${builtPKGDIR}"/"${versionToBuild}/Clover_v2k_r${versionToBuild}.pkg"
 		tput bel
 	fi
 	
