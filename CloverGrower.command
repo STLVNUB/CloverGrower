@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4c"
+myV="5.4f"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -185,6 +185,7 @@ function notify(){
 if [ -f "${notifier}" ] && [ "${theSystem}" -ge "12" ]; then
 	Title="CloverGrower V$myV"
 	#$1 = Message
+	echob "$Title $1"
 	"${notifier}" -message "$1" -title "$Title"
 else
 	echob "$1"
@@ -274,7 +275,7 @@ function getSOURCE() {
 				echob "edk2 svn revision = edk2 local revision ( $edk2REV )" # same return
 				edk2Update="No"
 			else
-				echob "edk2 local will be updated from $Ledk2	to $edk2REV" # updated
+				echob "edk2 local will be updated from $Ledk2 to $edk2REV" # updated
 			fi
 		fi		   	  	
         # Get edk2 source
@@ -337,7 +338,7 @@ function cleanRUN(){
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		./ebuild.sh --tagname=GCC${mygccVers} -$az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
-		#rm -rf "${buildDIR}" # Don't clean
+		#rm -rf "${buildDIR}"
 	done	
 }
 	
@@ -468,7 +469,7 @@ function makePKG(){
 	echob "********************************************"
 	echob "Forum: http://www.projectosx.com/forum/index.php?showtopic=2562"
 	echob "Wiki:  http://clover-wiki.zetam.org:8080/Home"
-	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]]; then 
+	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]] && [ "$gFWLoader" != "Ozmosis" ]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
 	else
 			echob "${gCloverLoader}"
@@ -535,7 +536,7 @@ function makePKG(){
 			if [[ "${cloverLVers}" != "${CloverREV}" ]]; then
             	cd "${CloverDIR}"
            		echo "$CloverREV" > Lvers.txt # update the version
-           		notify "Clover Update Detected !"
+           		notify "Clover Update ( $CloverREV ) Detected !"
            		cloverUpdate="Yes"
            		echob "*********Clover Build STATS***********"
 				echob "*      local  revision at ${cloverLVers}       *"
@@ -557,9 +558,10 @@ function makePKG(){
             	echob "No Clover Update found."
             	echob "Current revision: ${cloverLVers}"
             fi
-    	fi
-    	sleep 3
-    else    	
+    	else
+    		[ -d "${buildDIR}" ] && rm -rf "${buildDIR}"
+    	fi		
+    else 
 	    cloverUpdate="Yes"
     fi
     if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
@@ -665,7 +667,6 @@ function makePKG(){
 		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
-		rm -rf "${buildDIR}"
 		echob "Auto open Clover_v2_r${versionToBuild}.pkg."
 		open "${builtPKGDIR}"/"${versionToBuild}/Clover_v2_r${versionToBuild}.pkg"
 		tput bel
@@ -687,14 +688,23 @@ getInstalledLoader(){
     # Discover current bootloader and associated version.
     gRefitVers="0"
     gTheLoader=$(ioreg -l -pIODeviceTree | grep firmware-vendor | awk '{print $5}' | sed 's/_/ /g' | tr -d "<\">" | xxd -r -p)
+    gBootLog=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
+            "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g')
+            
     if [[ "$gTheLoader" == "Apple" ]]; then
 		 gCloverLoader="Booting with Apple EFI ${efiBITS}"
 		 gRefitVers="1"
 		 return 0
-	fi	
-    if [[ "$gTheLoader" != "" ]]; then
+	fi
+	if [[ "$gTheLoader" == "American Megatrends" ]]; then
+		gFWLoader=$(echo $gBootLog | awk '{print $5}')
+	fi
+	if [ "$gFWLoader" == "Ozmosis" ]; then
+		gFWVers=$(echo $gBootLog | awk '{print $6}')
+		gCloverLoader="Booting with $gFWLoader r$gFWVers EFI :) on $gTheLoader"
+	elif [[ "$gTheLoader" != "" ]]; then
     	gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
-            "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g' )
+            "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g')
         gCloverLoader="Booting via Clover r${gRefitVers} BOOT${efiBITS}.efi with ${gTheLoader} UEFI"
     elif [[ "$gTheLoader" == "" ]]; then
         gTheLoader="Unknown_${efiBITS}"
@@ -710,7 +720,6 @@ getInstalledLoader(){
         fi
     fi  
 }
-notify "Welcome $user"
 # setup gcc
 if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
 		checkGCC
