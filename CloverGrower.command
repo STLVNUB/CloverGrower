@@ -66,7 +66,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4h"
+myV="5.4i"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN="${WORKDIR}/toolchain"
@@ -406,7 +406,7 @@ function installGCC(){
 	echob "  Starting CloverGrower Compile Tools process..." 
 	STARTM=$(date -u "+%s")
 	date
-	(./buildgccNew.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+	(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
 	wait    
 	tput bel
 	cd ..
