@@ -65,7 +65,6 @@ function storeConfig() {
 function exitTrap() {
     echo
     if [[ -n "${RAMDISK_MNT_PT:-}" ]]; then
-        echo "RAMDISK_MNT_PT:$RAMDISK_MNT_PT"
         dev_ramdisk=$(mount | grep "$RAMDISK_MNT_PT" | awk '{print $1}')
         echo
         echo "Ejecting RAM disk";
