@@ -62,6 +62,18 @@ function storeConfig() {
      rm "$CLOVER_GROWER_PRO_CONF".new
 }
 
+function exitTrap() {
+    echo
+    if [[ -n "${RAMDISK_MNT_PT:-}" ]]; then
+        echo "RAMDISK_MNT_PT:$RAMDISK_MNT_PT"
+        dev_ramdisk=$(mount | grep "$RAMDISK_MNT_PT" | awk '{print $1}')
+        echo
+        echo "Ejecting RAM disk";
+        cd "$CLOVER_GROWER_PRO_DIR";
+        umount "$RAMDISK_MNT_PT" && hdiutil detach "$dev_ramdisk"
+    fi
+}
+
 function mountRamDisk() {
     export RAMDISK_MNT_PT="$1"
     dev_ramdisk=$(mount | grep "$RAMDISK_MNT_PT" | awk '{print $1}')
@@ -72,11 +84,9 @@ function mountRamDisk() {
         [ -n "$dev_ramdisk" ] && newfs_hfs -v "CloverGrower RamDisk" "$dev_ramdisk" && echo
         [ ! -d "$RAMDISK_MNT_PT" ] && mkdir "$RAMDISK_MNT_PT"
         mount -t hfs "$dev_ramdisk" "$RAMDISK_MNT_PT"
-
     fi
-    # Automatically remove RAMDISK on exit
-    trap 'echo; echo "Ejecting RAM disk"; cd "$CLOVER_GROWER_PRO_DIR"; umount "$RAMDISK_MNT_PT" && hdiutil detach "$dev_ramdisk"' EXIT
 }
+
 
 function get_hours() {
 	starth=$(date "+%k")
@@ -253,6 +263,7 @@ function update_git_svn_repository() {
         echob "Not updating local repository ! Press any key to continue…"
         tput bel
         read
+        return 0
     fi
     return 1
 }
@@ -338,6 +349,9 @@ function update_repository() {
     esac
     return $?
 }
+
+# Automatically umount RAMDISK on exit
+trap 'exitTrap' EXIT
 
 # Local Variables:      #
 # mode: ksh             #
