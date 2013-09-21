@@ -24,9 +24,9 @@ fi
 # here we can change source versions of tools
 #
 export PREFIX="$2"
-export BINUTILS_VERSION=binutils-2.23.1
+export BINUTILS_VERSION=binutils-2.23.2
 export GCC_VERSION="$3"
-export GMP_VERSION=gmp-5.1.1
+export GMP_VERSION=gmp-5.1.2
 export MPFR_VERSION=mpfr-3.1.2
 export MPC_VERSION=mpc-1.0.1
 # Change PREFIX if you want gcc and binutils 
