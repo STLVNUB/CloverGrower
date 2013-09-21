@@ -504,7 +504,7 @@ function installToolchain() {
     echob "Starting CloverGrower Compile Tools process..."
     date
     # build only x64 because it can compile ia32 too
-    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+    PREFIX="$TOOLCHAIN" DIR_MAIN="$CLOVER_GROWER_PRO_DIR" DIR_TOOLS="$srcDIR/CloverTools" \
      "$srcDIR"/buildgcc.sh -x64 -all
     checkit "Toolchain build"
     tput bel
