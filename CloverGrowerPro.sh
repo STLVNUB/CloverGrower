@@ -37,6 +37,7 @@ CLOVER_LOCAL_REV=
 FORCE_REVISION=
 FORCE_CHECK_UPDATE=0
 FW_VBIOS_PATH=
+USE_LOCAL_BUILDGCC=0
 
 # Usage: usage
 # Print the usage.
@@ -227,6 +228,9 @@ while [[ $# -gt 0 ]]; do
         -u | --check-update)
                      shift
                      FORCE_CHECK_UPDATE=1 ;;
+        --use-local-buildgcc)
+                     shift
+                     USE_LOCAL_BUILDGCC=1 ;;
         *)
             printf "Unrecognized option \`%s'\n" "$option" 1>&2
             usage
@@ -497,9 +501,14 @@ function installToolchain() {
         mkdir "${srcDIR}"
     fi
 
-    # Get the latest version of buildgcc.sh from clover
-    echob "Checking out last version of buildgcc.sh from clover..."
-    svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/buildgcc.sh >/dev/null
+    if [[ "$USE_LOCAL_BUILDGCC" -eq 1 ]]; then
+        echob "Using local version of buildgcc.sh..."
+        cp "$CloverDIR"/buildgcc.sh "$srcDIR"/buildgcc.sh
+    else
+        # Get the latest version of buildgcc.sh from clover
+        echob "Checking out last version of buildgcc.sh from clover repository..."
+        svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/buildgcc.sh >/dev/null
+    fi
 
     echob "Starting CloverGrower Compile Tools process..."
     date
