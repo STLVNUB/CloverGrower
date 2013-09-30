@@ -341,7 +341,7 @@ function checkXCode() {
 # Check Toolchain
 function checkToolchain() {
     [[ -z "$TOOLCHAIN" ]] && echob "variable TOOLCHAIN not defined !" && exit 1
-    if [[ ! -x "${TOOLCHAIN}/bin/x86_64-linux-gnu-gcc" ]]; then
+    if [[ ! -x "${TOOLCHAIN}/bin/gcc" || ! -x "${TOOLCHAIN}/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
         installToolchain
     fi
     if [[ ! -x "${TOOLCHAIN}/bin/msgmerge" ]]; then
@@ -451,7 +451,6 @@ function getSOURCE() {
 
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
-    local builder=gcc
     local archs=$(echo "$1" | awk '{print toupper($0)}')
     local ebuild_command=("./ebuild.sh" "-gcc${mygccVers}" "-$style")
 
@@ -479,9 +478,11 @@ function cleanRUN(){
     local IFS=" /" # archs can be separate by space or /
     local archs=$(lc $archs)
     unset IFS
+    echo "Using TOOLCHAIN_DIR='$TOOLCHAIN'"
     for arch in $archs; do
         echob "running ${ebuild_command[@]} -$arch"
-        ${ebuild_command[@]} -$arch -$style
+        echo
+        TOOLCHAIN_DIR="$TOOLCHAIN" ${ebuild_command[@]} -$arch -$style
         checkit "Clover$arch $style"
     done
 
@@ -513,7 +514,7 @@ function installToolchain() {
     echob "Starting CloverGrower Compile Tools process..."
     date
     # build only x64 because it can compile ia32 too
-    PREFIX="$TOOLCHAIN" DIR_MAIN="$CLOVER_GROWER_PRO_DIR" DIR_TOOLS="$srcDIR/CloverTools" \
+    PREFIX="$TOOLCHAIN" DIR_MAIN="$CLOVER_GROWER_PRO_DIR" DIR_TOOLS="$srcDIR" \
      "$srcDIR"/buildgcc.sh -x64 -all
     checkit "Toolchain build"
     tput bel
@@ -674,7 +675,7 @@ function makePKG(){
         cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${EDK2DIR}/Conf/"
 
         # Patch edk2/Conf/tools_def.txt for GCC
-        sed -i'.orig' -e 's!^\(DEFINE GCC47_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/bin/x86_64-linux-gnu-!' \
+        sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
          "${EDK2DIR}/Conf/tools_def.txt"
         checkit "Patching edk2/Conf/tools_def.txt"
 
