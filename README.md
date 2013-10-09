@@ -1,7 +1,3 @@
-IMPORTANT NOTICE:
-Use the Pro Version, CloverGrower has been retired....
-
-
 CloverGrower 
 ============
 

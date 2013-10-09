@@ -252,7 +252,6 @@ fnMakeSymLinks ()
 
 ### ARGUMENTS fnFunctions ### 
 
-fnDownloadLibs
 fnALL ()
 # Functions: Build all source
 {
@@ -260,6 +259,7 @@ fnALL ()
     fnCompileBinutils
     fnCompileGCC
     fnMakeSymLinks
+    wait
 }
 
 fnArchIA32 ()
@@ -281,22 +281,21 @@ fnArchX64 ()
     export ARCH="x64"
     export ABI_VER="64"
 }
-
+fnDownloadLibs
 # 1. Argument ARCH
 case "$1" in
 ''|'-help')
 fnHelp && exit
 ;;
 '-all')
-if [[ "$myArch" == "i386" ]]; then
+if [[ "$myArch" == "i386" ]] || [[ "$myArch" == "X86_64" ]]; then
 	fnArchIA32
 	fnALL
-else
-	fnArchIA32
-	fnALL	
-	fnArchX64
-	fnall		
-fi	
+fi
+if [[ "$myArch" != "i386" ]]; then	
+fnArchX64
+fnALL
+fi
 
 ;;
 *)
