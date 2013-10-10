@@ -66,10 +66,10 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4l"
+myV="5.4i"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
-export TOOLCHAIN_DIR="${WORKDIR}/toolchain/cross"
+export TOOLCHAIN="${WORKDIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpacePKGDIR=
 workSpaceNeeded="522"
@@ -90,7 +90,7 @@ fi
 theBuiltVersion=""
 theAuthor=""
 style=release
-export CG_PREFIX="${TOOLCHAIN_DIR}"/ #CloverTools
+export CG_PREFIX="${TOOLCHAIN}"/CloverTools
 gFWLoader=
 # Shortcut and link
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
@@ -347,10 +347,10 @@ function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
     if [[ "$target" == "IA32" ]] || [[ "$myArch" == "i386" ]]; then
-    	DoLinks "ia32" "i686-clover-linux-gnu" # only for 32bit cpu
+    	DoLinks "ia32" "i686-linux-gnu" # only for 32bit cpu
     else	
-        DoLinks "x64"  "x86_64-clover-linux-gnu" # for 64bit CPU
-        DoLinks "ia32" "i686-cloverlinux-gnu" # ditto
+        DoLinks "x64"  "x86_64-linux-gnu" # for 64bit CPU
+        DoLinks "ia32" "x86_64-linux-gnu" # ditto
     fi    
 }
 
@@ -358,16 +358,16 @@ function MakeSymLinks() {
 function DoLinks(){
     ARCH="$1"
     TARGETARCH="$2"
-    if [[ ! -d "${TOOLCHAIN_DIR}/${ARCH}" ]]; then
-        mkdir -p "${TOOLCHAIN_DIR}/${ARCH}"
+    if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
+        mkdir -p "${TOOLCHAIN}/${ARCH}"
     fi
-    if [[ $(readlink "${TOOLCHAIN_DIR}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGETARCH-gcc" ]]; then # need to do this
+    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGETARCH-gcc" ]]; then # need to do this
         echo "  Fixing your GCC${mygccVers} ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
-            ln -sf "${CG_PREFIX}"/bin/$TARGETARCH-$bin  "${TOOLCHAIN_DIR}/${ARCH}"/$bin
+            ln -sf "${CG_PREFIX}"/bin/$TARGETARCH-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
         done
         echo "  Finished: Fixing"
-        echo "  symlinks are in: ${TOOLCHAIN_DIR}/$ARCH"
+        echo "  symlinks are in: ${TOOLCHAIN}/$ARCH"
     fi
 }
 
@@ -600,7 +600,7 @@ function makePKG(){
     cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
     # Patch edk2/Conf/tools_def.txt for GCC
     echob "Patching tools_def.txt to GCC${mygccVers}"
-    sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN_DIR!g" -e "s!GCC47!GCC${mygccVers}!g" \
+    sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
     "${edk2DIR}"/Conf/tools_def.txt
     wait
     checkit "    Patched edk2 Conf/tools_def.txt"
@@ -721,7 +721,7 @@ getInstalledLoader(){
     fi  
 }
 # setup gcc
-if [ ! -x "${CG_PREFIX}/${archBit}"-linux-gnu-gcc ]; then
+if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
 		checkGCC
 fi
 getInstalledLoader # check what user is Booting with ;)
