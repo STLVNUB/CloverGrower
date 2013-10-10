@@ -66,18 +66,17 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="5.4i"
+myV="6.0"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
-export TOOLCHAIN="${WORKDIR}/toolchain"
+export TOOLCHAIN=~/src/opt/local
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${WORKDIR}"/Files
 notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
-srcDIR="${WORKDIR}"/src
-edk2DIR="${srcDIR}"/edk2
+edk2DIR="${WORKDIR}"/edk2
 CloverDIR="${edk2DIR}"/Clover
 rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
@@ -90,7 +89,7 @@ fi
 theBuiltVersion=""
 theAuthor=""
 style=release
-export CG_PREFIX="${TOOLCHAIN}"/CloverTools
+export CG_PREFIX="${TOOLCHAIN}"
 gFWLoader=
 # Shortcut and link
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
@@ -261,13 +260,13 @@ function getSOURCEFILE() {
 
 # sets up svn sources
 function getSOURCE() {
-    if [ ! -d "${srcDIR}" ]; then
-        echob "    Make src Folder.."
-        mkdir "${srcDIR}"
+    if [ ! -d "${edk2DIR}" ]; then
+        echob "    Make edk2 Folder.."
+        mkdir "${edk2DIR}"
     fi
    	edk2Update="Yes"
     # Don't update edk2 if no Clover updates
-    if [[  "${cloverUpdate}" == "Yes" || ! -d "${edk2DIR}" ]]; then
+    if [[  "${cloverUpdate}" == "Yes" ]]; then
     	if [[ -d "${edk2DIR}"/.svn ]]; then # get svn revision
     		getREVISIONSedk2 test
     		Ledk2=`cat "${edk2DIR}"/Lvers.txt`
@@ -280,7 +279,7 @@ function getSOURCE() {
 		fi		   	  	
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
-        	cd "${srcDIR}"
+        	cd "${edk2}"
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
@@ -331,12 +330,12 @@ function cleanRUN(){
 	elif [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 mc ia32'
 	else
-		archBits='x64 mc'
+		archBits='x64'
 	fi		
 	cd "${CloverDIR}"
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
-		./ebuild.sh --tagname=GCC${mygccVers} -$az -r
+		"${filesDIR}"/ebuild.sh --tagname=GCC${mygccVers} $az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
 	done	
@@ -387,23 +386,31 @@ function checkGCC(){
 	    echob "  ...Not Found, Installing"
     fi
     installGCC
+    # Check that the gettext utilities exists
+	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
+    	echob "Need getttext for package builder, Fixing..."
+    	"${CloverDIR}"/buildgettext.sh
+    	wait
+    	checkit "buildtext.sh"
+    fi
+
 }
 
 function installGCC(){
-	echob "CloverTools NOT installed";echo
-	echob "Press 'i' To install GCC$gccVers"
+	echob "GCC$gccVers NOT installed";echo
+	echob "Press 'i' To install to ~/src/opt/local"
 	echob "OR"
-	echob "Press RETURN/ENTER' to EXIT CloverGrower"
+	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower"
 	read choose
 	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
 	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
 	cd "${WORKDIR}"/Files
-	echo "  Download and install CloverGrower gcc Compile Tools"
+	echo "  Download/install GCC$gccVers Compiler Tool"
 	echob "  To: ${CG_PREFIX}"
-	echo "  Press any key to start the process..."
+	echo "  Press any key to start..."
 	read
 	echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
-	echob "  Starting CloverGrower Compile Tools process..." 
+	echob "  Starting GCC$gccVers build process..." 
 	STARTM=$(date -u "+%s")
 	date
 	(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
@@ -596,14 +603,7 @@ function makePKG(){
    	cd "${edk2DIR}"
    	"${edk2DIR}"/edksetup.sh >/dev/null
   	# get configuration files from Clover
-    cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
-    cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
-    # Patch edk2/Conf/tools_def.txt for GCC
-    echob "Patching tools_def.txt to GCC${mygccVers}"
-    sed -i'.CG' -e "s!ENV(HOME)/src/opt/local!$TOOLCHAIN!g" -e "s!GCC47!GCC${mygccVers}!g" \
-    "${edk2DIR}"/Conf/tools_def.txt
-    wait
-    checkit "    Patched edk2 Conf/tools_def.txt"
+    cp "${filesDIR}/tools_def.txt"  "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 1
     autoBuild "$1"
@@ -611,13 +611,6 @@ function makePKG(){
     echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
 	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
 
-	# Check that the gettext utilities exists
-	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
-    	echob "Need getttext for package builder, Fixing..."
-    	"${CloverDIR}"/buildgettext.sh
-    	wait
-    	checkit "buildtext.sh"
-    fi
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]; then # make pkg if not there
 		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
@@ -658,13 +651,13 @@ function makePKG(){
 			echob "Clover revision $CloverREV Compile/MKPkg process took $TTIMEM to complete" 
 		fi
 		[[ ! -d "${builtPKGDIR}/${versionToBuild}" ]] && echob "mkdir -p buildPKG/${versionToBuild}." && mkdir -p "${builtPKGDIR}"/"${versionToBuild}"
-		echob "cp src/edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
+		echob "cp edk2/Clover/CloverPackage/sym/ builtPKG/${versionToBuild}."
 		if [[ "$target" != "IA32" ]]; then
 			cp -R "${CloverDIR}"/CloverPackage/sym/Clover* "${builtPKGDIR}"/"${versionToBuild}"/
 		else
 			cp -R "${CloverDIR}"/CloverPackage/sym/* "${builtPKGDIR}"/"${versionToBuild}"/
 		fi	
-		echob "rm -rf src/edk2/Clover/CloverPackage/sym"
+		echob "rm -rf edk2/Clover/CloverPackage/sym"
 		rm -rf "${CloverDIR}"/CloverPackage/sym
 		echob "rm -rf src/edk2/Build Folder"
 		echob "Auto open Clover_v2k_r${versionToBuild}.pkg."

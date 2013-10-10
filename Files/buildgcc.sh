@@ -38,8 +38,8 @@ export MPC_VERSION=mpc-1.0.1
 # Change target mode of crosscompiler for
 # IA32 and X64 - (we know that this one works best)
 # 
-export TARGET_IA32="i686-clover-linux-gnu"
-export TARGET_X64="x86_64-clover-linux-gnu"
+export TARGET_IA32="i686-linux-gnu"
+export TARGET_X64="x86_64-linux-gnu"
 
 
 # ./configure arguments for GCC

@@ -10,7 +10,7 @@ Files/buildgcc2.sh
 
 # Directories that we doesn't need to track
 builtPKG/
-src/
+edk2/
 Toolchain/
 EFI/
 Clover_ovmf-qemu/
