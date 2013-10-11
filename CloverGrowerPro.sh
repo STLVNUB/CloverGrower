@@ -8,11 +8,10 @@ declare -r self="${0##*/}"
 export LC_ALL=C
 
 # Retrieve full path of the command
-declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
-
+declare -r CMD=$(readlink "$0" || echo "$0")
 # Retrieve full path of CloverGrowerPro
-declare -r CLOVER_GROWER_PRO_SCRIPT=$(readlink "$CMD" || echo "$CMD")
-declare -r CLOVER_GROWER_PRO_DIR=${CLOVER_GROWER_PRO_SCRIPT%/*}
+declare -r CLOVER_GROWER_PRO_DIR=$(cd $(dirname "$CMD") && echo "$PWD")
+declare -r CLOVER_GROWER_PRO_SCRIPT="$CLOVER_GROWER_PRO_DIR/$(basename '$CMD')"
 declare -r CLOVER_GROWER_PRO_CONF="$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.conf"
 
 # Source librarie
