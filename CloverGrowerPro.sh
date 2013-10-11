@@ -172,7 +172,7 @@ function checkUpdate() {
     local last_check=0
     [[ "$FORCE_CHECK_UPDATE" -eq 0 ]] && last_check=$(cat "$check_timestamp_file" 2>/dev/null)
     local now=$(date '+%s')
-    if [[ $(( ${last_check:-0} + $CHECKUPDATEINTERVAL )) -lt $now ]]; then
+    if [[ $(( ${last_check:-0} + ${CHECKUPDATEINTERVAL:-0} )) -lt $now ]]; then
         echo "Checking for new version of CloverGrowerPro..."
         (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull --rebase -f) || exit 1
         echo "$now" > "$check_timestamp_file"
@@ -637,27 +637,6 @@ function makePKG(){
         CLOVER_LOCAL_REV=0
         cloverUpdate="Yes"
     fi
-
-    # if [ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2_rL${versionToBuild}".pkg ] && [ -d "${CloverDIR}" ] && [ "$target" != "X64" ]; then # don't build IF pkg already here
-    #     if [ -f "${builtPKGDIR}/${versionToBuild}"/CloverCD/EFI/BOOT/BOOTX64.efi ]; then
-    #         theBuiltVersion=$(strings "${builtPKGDIR}/${versionToBuild}/CloverCD/EFI/BOOT/BOOTX64.efi" | sed -n 's/^Clover revision: *//p')
-    #         if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
-    #             built="Yes"
-    #         else
-    #             built="No "
-    #             cloverUpdate="Yes"
-    #         fi
-    #         echob  "******** Clover Package STATS **********"
-    #         echob "$(printf '*       local  revision at %-12s*\n' $CLOVER_LOCAL_REV)"
-    #         echob "$(printf '*       remote revision at %-12s*\n' $CLOVER_REMOTE_REV)"
-    #         echob "$(printf '*       Package Built   =  %-12s*\n' $built)"
-    #         echob "****************************************"
-    #         if [ "$built" == "Yes" ]; then
-    #             echob "Clover_v2_rL${versionToBuild}.pkg ALREADY Made!!"
-    #             return
-    #         fi
-    #     fi
-    # fi
 
     echo
     if [[ "${cloverUpdate}" == "Yes" ]]; then
