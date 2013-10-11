@@ -279,7 +279,7 @@ function getSOURCE() {
 		fi		   	  	
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
-        	cd "${edk2}"
+        	cd "${edk2DIR}"
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
