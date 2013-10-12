@@ -10,8 +10,8 @@ export LC_ALL=C
 # Retrieve full path of the command
 declare -r CMD=$(readlink "$0" || echo "$0")
 # Retrieve full path of CloverGrowerPro
-declare -r CLOVER_GROWER_PRO_DIR=$(cd $(dirname "$CMD") && echo "$PWD")
-declare -r CLOVER_GROWER_PRO_SCRIPT="$CLOVER_GROWER_PRO_DIR/$(basename '$CMD')"
+declare -r CLOVER_GROWER_PRO_DIR="$(cd "$(dirname "$CMD")" && echo "$PWD")"
+declare -r CLOVER_GROWER_PRO_SCRIPT="$CLOVER_GROWER_PRO_DIR/$(basename "$CMD")"
 declare -r CLOVER_GROWER_PRO_CONF="$CLOVER_GROWER_PRO_DIR/CloverGrowerPro.conf"
 
 # Source librarie
@@ -313,7 +313,7 @@ function checkCloverLink() {
         if [ ! -d /usr/local/bin ]; then
             command="sudo mkdir -p /usr/local/bin"; echob "$command" ; eval $command
         fi
-        command="sudo ln -sf $CLOVER_GROWER_PRO_SCRIPT /usr/local/bin/cloverpro && sudo chown $theBoss /usr/local/bin/cloverpro"
+        command="sudo ln -sf '$CLOVER_GROWER_PRO_SCRIPT' /usr/local/bin/cloverpro && sudo chown $theBoss /usr/local/bin/cloverpro"
         echob "$command" ; eval $command
     fi
 }
@@ -491,7 +491,7 @@ function cleanRUN(){
 function installToolchain() {
     cd "${WORKDIR}"/Files
     echo  "Download and install toolchain to compile Clover"
-    printf "toolchain will be install in %s\n" $(echob ${TOOLCHAIN})
+    printf "toolchain will be install in %s\n" "$(echob "${TOOLCHAIN}")"
     echo  "Press any key to start the process..."
     read
 
