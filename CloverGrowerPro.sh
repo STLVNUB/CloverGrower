@@ -172,7 +172,7 @@ function checkUpdate() {
     local last_check=0
     [[ "$FORCE_CHECK_UPDATE" -eq 0 ]] && last_check=$(cat "$check_timestamp_file" 2>/dev/null)
     local now=$(date '+%s')
-    if [[ $(( ${last_check:-0} + ${CHECKUPDATEINTERVAL:-0} )) -lt $now ]]; then
+    if [[ $(( ${last_check:-0} + ${CHECKUPDATEINTERVAL:-604800} )) -lt $now ]]; then
         echo "Checking for new version of CloverGrowerPro..."
         (cd "$CLOVER_GROWER_PRO_DIR" && LC_ALL=C git pull --rebase -f) || exit 1
         echo "$now" > "$check_timestamp_file"
