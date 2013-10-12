@@ -20,7 +20,11 @@ TARGETRULE=
 
 # Default values
 export TOOLCHAIN=GCC47
-export TARGETARCH=X64
+if [ "$archbit" == "x86_64" ]; then
+	export TARGETARCH=X64
+else
+	export TARGETARCH=IA32
+fi	
 export BUILDTARGET=RELEASE
 export BUILDTHREADS=$(( NUMBER_OF_CPUS + 1 ))
 export WORKSPACE=${WORKSPACE:-}

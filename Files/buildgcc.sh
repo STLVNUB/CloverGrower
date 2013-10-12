@@ -281,18 +281,20 @@ fnArchX64 ()
     export ARCH="x64"
     export ABI_VER="64"
 }
+
 fnDownloadLibs
+
 # 1. Argument ARCH
 case "$1" in
 ''|'-help')
 fnHelp && exit
 ;;
 '-all')
-if [[ "$myArch" == "i386" ]] || [[ "$myArch" == "X86_64" ]]; then
+if [[ "$archBit" == "i686" ]] || [[ "$archBit" == "X86_64" ]]; then
 	fnArchIA32
 	fnALL
 fi
-if [[ "$myArch" != "i386" ]]; then	
+if [[ "$archBit" == "X86_64" ]]; then	
 fnArchX64
 fnALL
 fi

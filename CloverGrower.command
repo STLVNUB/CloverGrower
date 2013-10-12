@@ -12,17 +12,19 @@ declare -r CLOVER_GROWER_DIR="${CLOVER_GROWER_SCRIPT%/*}"
 theShortcut=`echo ~/Desktop`
 # Source librarie
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
-export myArch=`uname -m`
-archBit='x86_64'
+myArch=`uname -m`
+export archBit='x86_64'
+theRevision=
 if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
 	target="X64/IA32"
 else 	
 	target="X64"
 fi
-if [ "$myArch" == "i386" ] || [ "$1" != "" ] ; then # for 32bit cpu
+if [ "$myArch" == "i386" ] || [ "$1" == "32" ] ; then # for 32bit cpu
 	target="IA32"
-	archBit='i686'
-fi			
+	export archBit='i686'
+fi
+[ "$1" == "-r" ] &&	[ "$2" != "" ] && theRevision="$2"		
 # don't use -e
 set -u
 user=$(id -un)
@@ -66,7 +68,7 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="6.0"
+myV="6.01"
 gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN=~/src/opt/local
@@ -89,7 +91,6 @@ fi
 theBuiltVersion=""
 theAuthor=""
 style=release
-export CG_PREFIX="${TOOLCHAIN}"
 gFWLoader=
 # Shortcut and link
 if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/CloverGrower.command) != "$CLOVER_GROWER_SCRIPT" ]]; then
@@ -325,16 +326,17 @@ function cleanRUN(){
 	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
-	if [[ "$myArch" == "i386" ]]; then # if 32bit processor
+	if [[ "$myArch" == "i386" || "$archBit" == "i686" ]]; then # if 32bit processor
 		archBits='ia32'
 	elif [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 mc ia32'
 	else
 		archBits='x64'
-	fi		
+	fi
 	cd "${CloverDIR}"
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
+		sleep 2
 		"${filesDIR}"/ebuild.sh --tagname=GCC${mygccVers} $az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
@@ -386,6 +388,7 @@ function checkGCC(){
 	    echob "  ...Not Found, Installing"
     fi
     installGCC
+    GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
     # Check that the gettext utilities exists
 	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
     	echob "Need getttext for package builder, Fixing..."
@@ -397,7 +400,7 @@ function checkGCC(){
 }
 
 function installGCC(){
-	echob "GCC$gccVers NOT installed";echo
+	echob "$archBit GCC$gccVers NOT installed";echo
 	echob "Press 'i' To install to ~/src/opt/local"
 	echob "OR"
 	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower"
@@ -413,7 +416,7 @@ function installGCC(){
 	echob "  Starting GCC$gccVers build process..." 
 	STARTM=$(date -u "+%s")
 	date
-	(./buildgcc.sh -all "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
+	(./buildgcc.sh "-all" "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
 	wait    
 	tput bel
 	cd ..
@@ -481,42 +484,43 @@ function makePKG(){
 	else
 			echob "${gCloverLoader}"
 	fi
-	echo
-	echob "Stats   :-Clover          Stats           :-WorkSpace"
-	echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
-	echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
-	echob "Compiler: GCC $gccVers       builtPKGDIR     : ${workSpacePKGDIR}"
-	echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
-	[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
-	if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "${CloverDIR}" ]; then # don't build IF pkg already here
-		if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
-			built="Yes"
-		else
-			built="No "
-			cloverUpdate="Yes"
-		fi
-		echob "*********Clover Build STATS***********"
-		echob "*      remote revision at ${CloverREV}       *" 
-		echob "*      local  revision at ${versionToBuild}       *"
-		if [ "$built" == "Yes" ]; then
-			echob "* Clover_v2k_r${versionToBuild}.pkg ALREADY Made!  *"
-			echob "**************************************"
-			if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
+	if [ "$theRevision" == "" ]; then
+		echo
+		echob "Stats   :-Clover          Stats           :-WorkSpace"
+		echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
+		echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
+		echob "Compiler: GCC $gccVers       builtPKGDIR     : ${workSpacePKGDIR}"
+		echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
+		[[ -d "${builtPKGDIR}" ]] && theBuiltVersion=`ls -t "${builtPKGDIR}"` && [[ $theBuiltVersion != "" ]] && theBuiltVersion="${theBuiltVersion:0:4}"
+		if [[ -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ||  -d "${builtPKGDIR}/${versionToBuild}/CloverCD" ]] && [ -d "$	{CloverDIR}" ]; then # don't build IF pkg already here
+			if [ "${theBuiltVersion}" == "${versionToBuild}" ]; then
+				built="Yes"
+			else
+				built="No "
+				cloverUpdate="Yes"
+			fi
+			echob "*********Clover Build STATS***********"
+			echob "*      remote revision at ${CloverREV}       *" 
+			echob "*      local  revision at ${versionToBuild}       *"
+			if [ "$built" == "Yes" ]; then
+				echob "* Clover_v2k_r${versionToBuild}.pkg ALREADY Made!  *"
+				echob "**************************************"
+				if [[ "${versionToBuild}" -gt "${gRefitVers}" ]]; then
 					echob "Updated package (${versionToBuild}) NOT installed!!"
 					echob "Opening ${versionToBuild} Folder"
 					open "${builtPKGDIR}"/"${versionToBuild}"
- 			fi	
-			return
+ 				fi	
+				return
+			fi
+			echob "*      Package Built   =  $built        *"
+			echob "**************************************"
 		fi
-		echob "*      Package Built   =  $built        *"
-		echob "**************************************"
-	fi
-
+	fi	
 	if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then
-		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" ]]; then
+		if [[ -d "${CloverDIR}" && -d "${rEFItDIR}" && "$theRevision" == "" ]]; then
 			cloverLVers=$(getSvnRevision "${CloverDIR}")
 			if [[ "$theAuthor" == "Last Changed Author: pootle-clover" ]]; then
-            	echob "*********Clover Build STATS***********"
+           		echob "*********Clover Build STATS***********"
 				echob "*      local  revision at ${cloverLVers}       *"
 				echob "*      remote revision at ${CloverREV}       *"
 				echob "*      Package Built   =  $built        *"
@@ -526,12 +530,12 @@ function makePKG(){
 					echob "Last successful build was ${theBuiltVersion}"
 					while [ "$theAuthor" == "Last Changed Author: pootle-clover"  ]
 					do
-					echob "Commit was from 'pootle-clover'"
-					echob "so Auto backtracking a revision"
-					let ToBuildVersion--
-					echob "Trying r${ToBuildVersion}"
-					getREVISIONSClover "test" ${ToBuildVersion}
-					echob "Found ${newCloverRev} $theAuthor"
+						echob "Commit was from 'pootle-clover'"
+						echob "so Auto backtracking a revision"
+						let ToBuildVersion--
+						echob "Trying r${ToBuildVersion}"
+						getREVISIONSClover "test" ${ToBuildVersion}
+						echob "Found ${newCloverRev} $theAuthor"
 					done 
             		echob "Continuing using r${newCloverRev}"
             		versionToBuild=${newCloverRev}
@@ -584,13 +588,18 @@ function makePKG(){
 	    	spinner $!
 			checkit "edk2  "
 		fi		
-	fi		
+	fi	
+	if [ "$theRevision" != "" ]; then	
+		versionToBuild="${theRevision}"
+		cloverUpdate="Yes"
+	else
+   	 	versionToBuild="${CloverREV}"
+	fi
 	if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echob "Getting SVN Source Files, Hang ten, OR TWENTY"
     	getSOURCE
-   	 	versionToBuild="${CloverREV}"
-   	else
-   		versionToBuild="${cloverLVers}" 	
+   	elif [ "$theRevision" == "" ]; then
+   		versionToBuild="${cloverLVers}"
    	fi 
    	if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then  # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
@@ -609,8 +618,6 @@ function makePKG(){
     autoBuild "$1"
     tput bel
     echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
-	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
-
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]; then # make pkg if not there
 		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
@@ -620,7 +627,7 @@ function makePKG(){
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
 			wait
-			if [ ! -f "${CloverDIR}"/CloverPackage/sym/Clover_v2k_r${versionToBuild}.pkg ]; then 
+			if [ ! -f "${CloverDIR}/CloverPackage/sym/Clover_v2k_r${versionToBuild}".pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
 				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
 				exit 1
@@ -714,7 +721,8 @@ getInstalledLoader(){
     fi  
 }
 # setup gcc
-if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ] || [ ! -d "${TOOLCHAIN}" ]; then
+export CG_PREFIX="${TOOLCHAIN}" #&& echo "${CG_PREFIX}/bin/${archBit}" && exit
+if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]; then
 		checkGCC
 fi
 getInstalledLoader # check what user is Booting with ;)
