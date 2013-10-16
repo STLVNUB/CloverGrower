@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.04"
+myV="6.05"
 gccVers="4.8.1" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -70,20 +70,20 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-export WORKDIR="${CLOVER_GROWER_DIR}"
+export workDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN=~/src/opt/local
-workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
+workSpace=$(df -m "${workDIR}" | tail -n1 | awk '{ print $4 }')
 workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
-filesDIR="${WORKDIR}"/Files
+filesDIR="${workDIR}"/Files
 notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
-edk2DIR="${WORKDIR}"/edk2
+edk2DIR="${workDIR}"/edk2
 CloverDIR="${edk2DIR}"/Clover
 rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
-builtPKGDIR="${WORKDIR}"/builtPKG
+builtPKGDIR="${workDIR}"/builtPKG
 
 if [ -d "${builtPKGDIR}" ]; then
 	workSpacePKGDIR=$(du -sh "${builtPKGDIR}" | tail -n1 | awk '{ print $1 }')
@@ -127,8 +127,8 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 	fi
 fi
 
-if [[ ! -f "${WORKDIR}"/vers.txt ]]; then
-	echo $myV >"${WORKDIR}"/vers.txt
+if [[ ! -f "${workDIR}"/vers.txt ]]; then
+	echo $myV >"${workDIR}"/vers.txt
 fi	
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
 
@@ -226,8 +226,8 @@ function getREVISIONSedk2(){
 checksvn=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision"`
 wait
 export edk2REV="${checksvn:10:5}"
-checkit ", edk2 remote SVN ${edk2REV}" # this sometimes fails, so need to check.
-wait
+#checkit ", edk2 remote SVN ${edk2REV}" # this sometimes fails, so need to check.
+#wait
 if [ "$1" == "Initial" ]; then
 	basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev'`
 	basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
@@ -240,8 +240,11 @@ fi
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
-	if [ ! -d "$1" ]; then
-        mkdir "$1"
+	echob "Make $1 SVN Repository Folder.."
+	[ "$1" == "edk2" ] && cd "${workDIR}"
+	[ "$1" == "Clover" ] && cd "${edk2DIR}"
+	if [ ! -d "${1}"/.svn ]; then
+        [ ! -d "$1" ] && mkdir "$1"
 		getREVISIONS${1} Initial this # flag to write initial revision
 		wait
       	echo -n "    Check out $1  "
@@ -262,11 +265,7 @@ function getSOURCEFILE() {
 
 # sets up svn sources
 function getSOURCE() {
-    if [ ! -d "${edk2DIR}" ]; then
-        echob "    Make edk2 Folder.."
-        mkdir "${edk2DIR}"
-    fi
-   	edk2Update="Yes"
+    edk2Update="Yes"
     # Don't update edk2 if no Clover updates
     if [[  "${cloverUpdate}" == "Yes" ]]; then
     	if [[ -d "${edk2DIR}"/.svn ]]; then # get svn revision
@@ -400,7 +399,7 @@ function checkGCC(){
 	read choose
 	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
 	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
-	cd "${WORKDIR}"/Files
+	cd "${workDIR}"/Files
 	echo "  Download/install GCC$gccVers Compiler Tool"
 	echob "  To: ${CG_PREFIX}"
 	sleep 2
@@ -468,7 +467,7 @@ function makePKG(){
 	if [ "$theRevision" == "" ]; then
 		echo
 		echob "Stats   :-Clover          Stats           :-WorkSpace"
-		echob "Clover  : revision: ${CloverREV}  Work Folder     : $WORKDIR"
+		echob "Clover  : revision: ${CloverREV}  Work Folder     : $workDIR"
 		echob "Target  : $target        Available Space : ${workSpaceAvail} MB"
 		echob "Compiler: GCC $gccVers       builtPKGDIR     : ${workSpacePKGDIR}"
 		echob "User: $user running '$(basename $CMD)' on OS X '$rootSystem' :)"
@@ -590,7 +589,7 @@ function makePKG(){
    	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
 	# Create new default edk2 files in edk2/Conf
    	cd "${edk2DIR}"
-   	edksetup.sh >/dev/null
+   	./edksetup.sh >/dev/null
   	 #get configuration files from Clover
     cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
