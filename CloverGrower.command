@@ -1,5 +1,7 @@
 #!/bin/bash
-
+myV="6.03"
+gccVers="4.8.1" 
+# use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
 
@@ -68,8 +70,6 @@ if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
 fi	
 
 #vars
-myV="6.01"
-gccVers="4.8.1" # use this
 export WORKDIR="${CLOVER_GROWER_DIR}"
 export TOOLCHAIN=~/src/opt/local
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
@@ -84,6 +84,7 @@ rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
+
 if [ -d "${builtPKGDIR}" ]; then
 	workSpacePKGDIR=$(du -sh "${builtPKGDIR}" | tail -n1 | awk '{ print $1 }')
 fi
@@ -97,7 +98,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
 		echob "Running CloverGrower.command"
 		theText="link"
-		echob "To make CloverGrower $myV easier to use"
+		echob "To make CloverGrower V$myV easier to use"
 		echob "I will do one of the following:"
 		echo "    Create link, in /usr/local/bin.     Select any key"
 		echo "    Create Shortcut, put it on Desktop. Select 's'"
@@ -280,7 +281,7 @@ function getSOURCE() {
 		fi		   	  	
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
-        	cd "${edk2DIR}"
+        	#cd "${edk2DIR}"
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
@@ -327,7 +328,7 @@ function cleanRUN(){
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
 	if [[ "$myArch" == "i386" || "$archBit" == "i686" ]]; then # if 32bit processor
-		archBits='ia32'
+		archBits='IA32'
 	elif [ "$bits" == "X64/IA32" ]; then
 		archBits='x64 mc ia32'
 	else
@@ -337,7 +338,7 @@ function cleanRUN(){
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		sleep 2
-		"${filesDIR}"/ebuild.sh --tagname=GCC${mygccVers} $az -r
+		"${CloverDIR}"/ebuild.sh -$az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
 	done	
@@ -348,10 +349,10 @@ function MakeSymLinks() {
 # Function: SymLinks in CG_PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
     if [[ "$target" == "IA32" ]] || [[ "$myArch" == "i386" ]]; then
-    	DoLinks "ia32" "i686-linux-gnu" # only for 32bit cpu
+    	DoLinks "ia32" "i686-clover-linux-gnu" # only for 32bit cpu
     else	
-        DoLinks "x64"  "x86_64-linux-gnu" # for 64bit CPU
-        DoLinks "ia32" "x86_64-linux-gnu" # ditto
+        DoLinks "x86_64"  "x86_64-clover-linux-gnu" # for 64bit CPU
+        DoLinks "i686" "i686-clover-linux-gnu" # ditto
     fi    
 }
 
@@ -362,7 +363,7 @@ function DoLinks(){
     if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
         mkdir -p "${TOOLCHAIN}/${ARCH}"
     fi
-    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"/gcc) != "${CG_PREFIX}"/bin/"$TARGETARCH-gcc" ]]; then # need to do this
+    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"-clover-linux-gnu/bin/gcc) != "${CG_PREFIX}"-clover-linux-gnu/bin/gcc ]]; then # need to do this
         echo "  Fixing your GCC${mygccVers} ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
             ln -sf "${CG_PREFIX}"/bin/$TARGETARCH-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
@@ -376,34 +377,18 @@ function DoLinks(){
 function checkGCC(){
     export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
     echob "Checking GCC$gccVers INSTALL status"
-    if [ -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]; then
-    	local lVers=$("${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc -dumpversion)
+    if [ -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
+    	local lVers=$("${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc -dumpversion)
         export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
         echo "  gcc $lVers detected"
         echo "  Fixing gcc…"
         MakeSymLinks
         return
-    else
-        sleep 1
-	    echob "  ...Not Found, Installing"
     fi
-    installGCC
-    GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
-    # Check that the gettext utilities exists
-	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
-    	echob "Need getttext for package builder, Fixing..."
-    	"${CloverDIR}"/buildgettext.sh
-    	wait
-    	checkit "buildtext.sh"
-    fi
-
-}
-
-function installGCC(){
 	echob "$archBit GCC$gccVers NOT installed";echo
 	echob "Press 'i' To install to ~/src/opt/local"
 	echob "OR"
-	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower"
+	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower V$myV"
 	read choose
 	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
 	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
@@ -414,21 +399,11 @@ function installGCC(){
 	read
 	echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
 	echob "  Starting GCC$gccVers build process..." 
-	STARTM=$(date -u "+%s")
+	STARTM=$(date -u "+%s" 1>/dev/null )
 	date
-	(./buildgcc.sh "-all" "${CG_PREFIX}" "$gccVers") #& # build all to CG_PREFIX with gccVers
-	wait    
-	tput bel
-	cd ..
-	if [ -f "${CG_PREFIX}"/ia32/gcc ] || [ -f "${CG_PREFIX}"/x64/gcc ]; then
-		MakeSymLinks
-		flagTime="Yes"
-		return 
-	elif [ ! -f "$CG_PREFIX"/ia32/gcc ] && [ ! -f "$CG_PREFIX"/x64/gcc ]; then
-		echob " Clover Compile Tools install ERROR: will re-try"
-		checkGCC
-		return
-	fi
+	("${filesDIR}"/buildgcc.sh "-all") # "${CG_PREFIX}" "$gccVers")  # build all to CG_PREFIX with gccVers
+	checkit "GCC$gccVers build process..."	
+
 }
 
 # main function
@@ -601,6 +576,13 @@ function makePKG(){
    	elif [ "$theRevision" == "" ]; then
    		versionToBuild="${cloverLVers}"
    	fi 
+   	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
+	# Check that the gettext utilities exists
+	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
+		echob "Need getttext for package builder, Fixing..."
+    	"${CloverDIR}"/buildgettext.sh
+  		checkit "buildtext.sh"
+	fi
    	if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then  # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
@@ -611,8 +593,8 @@ function makePKG(){
    	# Create new default edk2 files in edk2/Conf
    	cd "${edk2DIR}"
    	"${edk2DIR}"/edksetup.sh >/dev/null
-  	# get configuration files from Clover
-    cp "${filesDIR}/tools_def.txt"  "${edk2DIR}"/Conf/
+  	 #get configuration files from Clover
+    cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 1
     autoBuild "$1"
@@ -629,7 +611,7 @@ function makePKG(){
 			wait
 			if [ ! -f "${CloverDIR}/CloverPackage/sym/Clover_v2k_r${versionToBuild}".pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
-				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower :)"
+				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower V$myV :)"
 				exit 1
 			else
 				echob "Clover_v2k_r${versionToBuild}.pkg	successfully built"
@@ -646,7 +628,7 @@ function makePKG(){
 			else
 				TTIMEMB=$(printf "%ds\n" $((RUNTIMEMB)))
 			fi
-			echob "CloverGrower Complete Build process took $TTIMEMB to complete..."
+			echob "CloverGrower V$myV Complete Build process took $TTIMEMB to complete..."
 		else
 			STOPM=$(date -u "+%s")
 			RUNTIMEM=$(expr $STOPM - $STARTM)
@@ -721,8 +703,8 @@ getInstalledLoader(){
     fi  
 }
 # setup gcc
-export CG_PREFIX="${TOOLCHAIN}" #&& echo "${CG_PREFIX}/bin/${archBit}" && exit
-if [ ! -x "${CG_PREFIX}/bin/${archBit}"-linux-gnu-gcc ]; then
+export CG_PREFIX="${TOOLCHAIN}"/cross 
+if [ ! -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
 		checkGCC
 fi
 getInstalledLoader # check what user is Booting with ;)
