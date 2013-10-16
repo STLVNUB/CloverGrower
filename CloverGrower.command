@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.03"
+myV="6.04"
 gccVers="4.8.1" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -314,6 +314,14 @@ function getSOURCE() {
 	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
     wait
+    GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
+	# Check that the gettext utilities exists
+	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
+		echob "Need getttext for package builder, Fixing..."
+    	"${CloverDIR}"/buildgettext.sh
+  		checkit "buildtext.sh"
+	fi
+
 }
 
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
@@ -395,15 +403,13 @@ function checkGCC(){
 	cd "${WORKDIR}"/Files
 	echo "  Download/install GCC$gccVers Compiler Tool"
 	echob "  To: ${CG_PREFIX}"
-	echo "  Press any key to start..."
-	read
+	sleep 2
 	echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
 	echob "  Starting GCC$gccVers build process..." 
 	STARTM=$(date -u "+%s" 1>/dev/null )
 	date
 	("${filesDIR}"/buildgcc.sh "-all") # "${CG_PREFIX}" "$gccVers")  # build all to CG_PREFIX with gccVers
 	checkit "GCC$gccVers build process..."	
-
 }
 
 # main function
@@ -570,29 +576,21 @@ function makePKG(){
 	else
    	 	versionToBuild="${CloverREV}"
 	fi
-	if [[ ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
+	if [[ ! -d "${edk2DIR}"/.svn || ! -d "${rEFItDIR}" || "$cloverUpdate" == "Yes" ]]; then # only get source if NOT there or UPDATED.
     	echob "Getting SVN Source Files, Hang ten, OR TWENTY"
     	getSOURCE
    	elif [ "$theRevision" == "" ]; then
    		versionToBuild="${cloverLVers}"
    	fi 
-   	GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
-	# Check that the gettext utilities exists
-	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
-		echob "Need getttext for package builder, Fixing..."
-    	"${CloverDIR}"/buildgettext.sh
-  		checkit "buildtext.sh"
-	fi
    	if [[ ! -f "${CloverDIR}"/HFSPlus/X64/HFSPlus.efi ]]; then  # only needs to be done ONCE.
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
    	# Remove old edk2 config files
    	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
-	wait
-   	# Create new default edk2 files in edk2/Conf
+	# Create new default edk2 files in edk2/Conf
    	cd "${edk2DIR}"
-   	"${edk2DIR}"/edksetup.sh >/dev/null
+   	edksetup.sh >/dev/null
   	 #get configuration files from Clover
     cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
