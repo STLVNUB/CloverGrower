@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.05"
+myV="6.07"
 gccVers="4.8.1" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -78,7 +78,25 @@ workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${workDIR}"/Files
 notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
-edk2DIR="${workDIR}"/edk2
+while [ ! -f "${workDIR}"/.edk2DIR ]; do
+	echo "edk2 folder is NOW universal"
+	echob "To use Default, press return/enter"
+	echo "OR"
+	echob "drag in edk2 folder and press return/enter"
+	read myedk2DIR
+	if [ ! -d "$myedk2DIR" ]; then
+		echo "Ok, will use"
+		echob "${workDIR}/edk2 as default"
+		echo "${workDIR}"/edk2 > "${workDIR}"/.edk2DIR
+else
+		echo "Using"
+		echo "$myedk2DIR"
+		echo "as edk2 source folder"
+		echo "$myedk2DIR" > "${workDIR}"/.edk2DIR
+		break
+	fi
+done	
+edk2DIR=$(cat "${workDIR}"/.edk2DIR)
 CloverDIR="${edk2DIR}"/Clover
 rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
@@ -210,6 +228,7 @@ newCloverRev=
 cloverstats=$(echo "$cloverInfo" | grep 'Revision')
 export CloverREV="${cloverstats:10:10}"
 theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
+[ ! -d "${CloverDIR}" ] && mkdir -p "${CloverDIR}"
 if [ "$1" == "Initial" ]; then
 	echo "${CloverREV}" > "${CloverDIR}"/Lvers.txt	# make initial revision txt file
 else
@@ -226,8 +245,6 @@ function getREVISIONSedk2(){
 checksvn=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision"`
 wait
 export edk2REV="${checksvn:10:5}"
-#checkit ", edk2 remote SVN ${edk2REV}" # this sometimes fails, so need to check.
-#wait
 if [ "$1" == "Initial" ]; then
 	basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev'`
 	basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
@@ -240,13 +257,11 @@ fi
 # checkout/update svn
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
-	echob "Make $1 SVN Repository Folder.."
-	[ "$1" == "edk2" ] && cd "${workDIR}"
-	[ "$1" == "Clover" ] && cd "${edk2DIR}"
-	if [ ! -d "${1}"/.svn ]; then
-        [ ! -d "$1" ] && mkdir "$1"
-		getREVISIONS${1} Initial this # flag to write initial revision
-		wait
+	[ ! -d "${edk2DIR}" ] && mkdir "${edk2DIR}"
+	[ "$1" == edk2 ] && cd "${workDIR}"
+	[ "$1" == Clover ] && cd "${edk2DIR}" 
+	getREVISIONS${1} Initial this # flag to write initial revision
+	if [ ! -d "${1}DIR"/.svn ]; then
       	echo -n "    Check out $1  "
 		(svn co "$2" "$1" --non-interactive --trust-server-cert >/dev/null) &
 	else
@@ -255,7 +270,7 @@ function getSOURCEFILE() {
 		else 
 			theFlag="up"
 		fi
-		cd "$1"	
+		cd "${1}DIR"	
     	echo -n "    Auto Update $1  "
 		( svn --non-interactive --trust-server-cert $theFlag >/dev/null) &
     fi
@@ -284,32 +299,9 @@ function getSOURCE() {
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
 	    	wait
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
-	        if [[ -f "${edk2DIR}"/Basetools/Source/C/bin/VfrCompile ]]; then 
-	    		if [[ "${cloverUpdate}" == "Yes" ]]; then
-					basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev'`
-					basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
-					Lbasetools=`cat "${edk2DIR}"/Lbasetools.txt`
-			    	if [[ "${basetools}" != "${Lbasetools}" ]]; then # rebuild tools IF revision has changed
-						echob "    Updated BaseTools Detected!!!"
-			    		echo "    BaseTools @ Revision $basetools"
-						echo "    Clean EDK II BaseTools "
-						make -C "${edk2DIR}"/BaseTools clean >/dev/null
-						echo "${basetools}" >"${edk2DIR}"/Lbasetools.txt
-						wait
-					else
-						echob "    Basetools revision @ ${Lbasetools}"
-					fi
-				fi									
-			fi	
-		fi	
+	      fi	
 	fi
 	cd "${edk2DIR}"
-	if [[ ! -f Basetools/Source/C/bin/VfrCompile  && -f ./edksetup.sh ]]; then # build tools ONCE, unless they get UPDATED,then they will be built, as above
-      	echo -n "    Make edk2 BaseTools.. "
-        make -C "${edk2DIR}"/BaseTools &>/dev/null &
-        spinner $!
-        checkit "Basetools Compile"
-    fi
 	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
     wait

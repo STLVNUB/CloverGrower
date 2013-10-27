@@ -477,7 +477,6 @@ CompileCrossGCC () {
 }
 
 do_x64(){
-
 export TARGET="x86_64-clover-linux-gnu"
 export ARCH="x64"
 export ABI_VER="64"
@@ -503,8 +502,10 @@ CheckXCode      || exit 1
 
 DownloadSource  || exit 1
 startBuildEpoch=$(date -u "+%s")
-do_x64
-compile
+if [ $archBIT != i686 ]; then
+	do_x64
+	compile
+fi	
 do_ia32
 compile
 # Remove GCC source directory
