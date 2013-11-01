@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.07"
+myV="6.08"
 gccVers="4.8.1" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -78,25 +78,24 @@ workSpaceNeeded="522"
 workSpaceMin="104"
 filesDIR="${workDIR}"/Files
 notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
-while [ ! -f "${workDIR}"/.edk2DIR ]; do
+[ -f "${workDIR}"/.edk2DIR ] && edk2DIR=$(cat "${workDIR}"/.edk2DIR) && [ ! -d "${edk2DIR}"/.svn ] && rm -rf "${workDIR}"/.edk2DIR 
+while [ ! -f "${workDIR}"/.edk2DIR ]; do # folder with edk2 svn
 	echo "edk2 folder is NOW universal"
 	echob "To use Default, press return/enter"
 	echo "OR"
 	echob "drag in edk2 folder and press return/enter"
-	read myedk2DIR
-	if [ ! -d "$myedk2DIR" ]; then
-		echo "Ok, will use"
-		echob "${workDIR}/edk2 as default"
-		echo "${workDIR}"/edk2 > "${workDIR}"/.edk2DIR
-else
-		echo "Using"
-		echo "$myedk2DIR"
-		echo "as edk2 source folder"
-		echo "$myedk2DIR" > "${workDIR}"/.edk2DIR
+	read my_edk2DIR
+	if [ ! -d "$my_edk2DIR" ]; then
+		my_edk2DIR="${workDIR}"/edk2
+	else
+		echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
 		break
 	fi
-done	
+done
 edk2DIR=$(cat "${workDIR}"/.edk2DIR)
+echo "Using..."
+echob "       $edk2DIR"
+echo "        as edk2 source folder"
 CloverDIR="${edk2DIR}"/Clover
 rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${edk2DIR}"/Build
