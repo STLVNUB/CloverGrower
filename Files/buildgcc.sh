@@ -502,7 +502,7 @@ CheckXCode      || exit 1
 
 DownloadSource  || exit 1
 startBuildEpoch=$(date -u "+%s")
-if [ $archBIT != i686 ]; then
+if [ $archBit != i686 ]; then
 	do_x64
 	compile
 fi	
