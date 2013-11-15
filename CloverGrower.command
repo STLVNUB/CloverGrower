@@ -1,6 +1,6 @@
 #!/bin/bash
-myV="6.08"
-gccVers="4.8.1" 
+myV="6.11"
+gccVers="4.8.2" 
 # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -93,6 +93,8 @@ while [ ! -f "${workDIR}"/.edk2DIR ]; do # folder with edk2 svn
 	fi
 done
 edk2DIR=$(cat "${workDIR}"/.edk2DIR)
+edk2DIRName=$(basename "${edk2DIR}")
+edk2DIRParent=$(dirname "${edk2DIR}")
 echo "Using..."
 echob "       $edk2DIR"
 echo "        as edk2 source folder"
@@ -257,10 +259,10 @@ fi
 # $1=Local folder, $2=svn Remote folder
 function getSOURCEFILE() {
 	[ ! -d "${edk2DIR}" ] && mkdir "${edk2DIR}"
-	[ "$1" == edk2 ] && cd "${workDIR}"
+	[ "$1" == edk2 ] && cd "${edk2DIRParent}"
 	[ "$1" == Clover ] && cd "${edk2DIR}" 
 	getREVISIONS${1} Initial this # flag to write initial revision
-	if [ ! -d "${1}DIR"/.svn ]; then
+	if [ ! -d "$1"/.svn ]; then
       	echo -n "    Check out $1  "
 		(svn co "$2" "$1" --non-interactive --trust-server-cert >/dev/null) &
 	else
@@ -269,9 +271,8 @@ function getSOURCEFILE() {
 		else 
 			theFlag="up"
 		fi
-		cd "${1}DIR"	
     	echo -n "    Auto Update $1  "
-		( svn --non-interactive --trust-server-cert $theFlag >/dev/null) &
+		( svn $theFlag --non-interactive --trust-server-cert  >/dev/null) &
     fi
 	spinner $!
 	checkit "  SVN $1"
@@ -406,7 +407,7 @@ function checkGCC(){
 function Main(){
 	STARTD=$(date -j "+%d-%h-%Y")
 	theARCHS="$1"
-	edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
+	[ -f "${edk2DIR}"/Lvers.txt ] && edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
 	echo $(date)
 	cloverLocal=${cloverLocal:=''}
 	echob "*******************************************"
@@ -582,7 +583,8 @@ function makePKG(){
    	cd "${edk2DIR}"
    	./edksetup.sh >/dev/null
   	 #get configuration files from Clover
-    cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
+    cp -R "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
+    cp -R "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 1
     autoBuild "$1"
