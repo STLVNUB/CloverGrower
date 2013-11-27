@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.11"
+myV="6.14"
 gccVers="4.8.2" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -87,6 +87,7 @@ while [ ! -f "${workDIR}"/.edk2DIR ]; do # folder with edk2 svn
 	read my_edk2DIR
 	if [ ! -d "$my_edk2DIR" ]; then
 		my_edk2DIR="${workDIR}"/edk2
+		echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
 	else
 		echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
 		break
@@ -269,10 +270,11 @@ function getSOURCEFILE() {
     	if [ "$1" == "Clover" ] && [ -d "${CloverDIR}"/.svn ]; then
 			theFlag="up --revision ${versionToBuild}"
 		else 
-			theFlag="up"
+			theFlag=up
 		fi
+    	cd "$1"
     	echo -n "    Auto Update $1  "
-		( svn $theFlag --non-interactive --trust-server-cert  >/dev/null) &
+		(svn $theFlag --non-interactive --trust-server-cert >/dev/null) &
     fi
 	spinner $!
 	checkit "  SVN $1"
@@ -337,7 +339,7 @@ function cleanRUN(){
 	for az in $archBits ; do
 		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
 		sleep 2
-		"${CloverDIR}"/ebuild.sh -$az -r
+		./ebuild.sh -$az -r
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
 	done	
