@@ -129,7 +129,6 @@ function checkConfig() {
 
     if [[ -z "$DEFAULT_TARGET" || -n "$DO_SETUP" ]];then
         DEFAULT_TARGET=$(prompt "Default target to use (ia32, x64 or x64-mcp)" "${DEFAULT_TARGET:-x64}")
-        DEFAULT_TARGET="${DEFAULT_TARGET##*-}"
         storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET"
         echo
     fi
@@ -161,8 +160,21 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -z "$ENABLE_SECURE_BOOT" || -n "$DO_SETUP" ]];then
+        local default_enable_secure_boot='No'
+        [[ "$ENABLE_SECURE_BOOT" -ne 0 ]] && \
+         default_enable_secure_boot='Yes'
+        local answer=$(prompt "Enable Secure Boot" \
+         "$default_enable_secure_boot")
+        ENABLE_SECURE_BOOT=0
+        [[ $(lc "$answer") == y* ]] && ENABLE_SECURE_BOOT=1
+        storeConfig 'ENABLE_SECURE_BOOT' "$ENABLE_SECURE_BOOT"
+        echo
+    fi
+
     if [[ -n "$DO_SETUP" ]];then
         local default_ebuild_optional_args=''
+        EBUILD_OPTIONAL_ARGS=$(echo "$EBUILD_OPTIONAL_ARGS" | sed 's/-D *ENABLE_SECURE_BOOT//g;s/^ *//;s/ *$//')
         EBUILD_OPTIONAL_ARGS=$(prompt "Additionnal parameters to pass to ebuild.sh script" "${EBUILD_OPTIONAL_ARGS:-}")
         storeConfig 'EBUILD_OPTIONAL_ARGS' "$EBUILD_OPTIONAL_ARGS"
         echo
@@ -474,6 +486,10 @@ function cleanRUN(){
     # We can activate Only SATA0 Patch in CloverEFI since revision 1853 of Clover
     [[ "$ONLY_SATA0_PATCH" -ne 0 && "$versionToBuild" -ge 1853 ]] && \
      ebuild_command+=("--only-sata0")
+
+    # We can activate Secure Bool in CloverEFI since revision 2436 of Clover
+    [[ "$ENABLE_SECURE_BOOT" -ne 0 && "$versionToBuild" -ge 2436 ]] && \
+     ebuild_command+=(-D ENABLE_SECURE_BOOT)
 
     [[ -n "${EBUILD_OPTIONAL_ARGS:-}" ]] && ebuild_command+=($EBUILD_OPTIONAL_ARGS)
 
