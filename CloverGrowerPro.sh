@@ -128,10 +128,14 @@ function checkConfig() {
     fi
 
     if [[ -z "$DEFAULT_TARGET" || -n "$DO_SETUP" ]];then
-        DEFAULT_TARGET=$(prompt "Default target to use" "${DEFAULT_TARGET:-x64}")
+        DEFAULT_TARGET=$(prompt "Default target to use (ia32, x64 or x64-mcp)" "${DEFAULT_TARGET:-x64}")
+        DEFAULT_TARGET="${DEFAULT_TARGET##*-}"
         storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET"
         echo
     fi
+    case "$DEFAULT_TARGET" in
+      mc) DEFAULT_TARGET=x64-mcp; storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET";;
+    esac
 
     if [[ -z "$VBIOS_PATCH_IN_CLOVEREFI" || -n "$DO_SETUP" ]];then
         local default_vbios_patch_in_cloverefi='No'
@@ -479,9 +483,9 @@ function cleanRUN(){
     unset IFS
     echo "Using TOOLCHAIN_DIR='$TOOLCHAIN'"
     for arch in $archs; do
-        echob "running ${ebuild_command[@]} -$arch"
+        echob "running ${ebuild_command[@]} --$arch"
         echo
-        TOOLCHAIN_DIR="$TOOLCHAIN" ${ebuild_command[@]} -$arch -$style
+        TOOLCHAIN_DIR="$TOOLCHAIN" ${ebuild_command[@]} --$arch
         checkit "Clover$arch $style"
     done
 
