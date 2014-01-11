@@ -45,7 +45,7 @@ usage () {
     echo "Compile Clover UEFI/Bios OS X Booter"
     echo
     printOptionHelp "-r, --revision"     "compile a specific Clover revision"
-    printOptionHelp "-t, --target"       "choose target(s) to build [default=x64]. You can specify multiple targets (ie. --target=\"ia32 x64\")"
+    printOptionHelp "-t, --target"       "choose target(s) to build [default=x64]. Targets currently supported: ia32, x64 and x64-mcp. You can specify multiple targets (ie. --target=\"ia32 x64\")."
     printOptionHelp "-u, --check-update" "force check update."
     printOptionHelp "-s, --setup"        "setup $self."
     printOptionHelp "-h, --help"         "print this message and exit"
@@ -128,7 +128,7 @@ function checkConfig() {
     fi
 
     if [[ -z "$DEFAULT_TARGET" || -n "$DO_SETUP" ]];then
-        DEFAULT_TARGET=$(prompt "Default target to use (ia32, x64 or x64-mcp)" "${DEFAULT_TARGET:-x64}")
+        DEFAULT_TARGET=$(prompt "Default target(s) to use (ia32, x64, x64-mcp)" "${DEFAULT_TARGET:-x64}")
         storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET"
         echo
     fi

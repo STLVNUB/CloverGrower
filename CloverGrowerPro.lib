@@ -145,7 +145,7 @@ printOptionHelp () {
         done
         print_option_help_nl=n
     fi
-    local print_option_help_split="$(echo "$2" | fmt -w 50)"
+    local print_option_help_split="$(echo "$2" | fmt -w 60)"
     if [[ x$print_option_help_nl = xy ]]; then
         echo "$print_option_help_split" | awk '{ print "                          " $0; }'
     else
