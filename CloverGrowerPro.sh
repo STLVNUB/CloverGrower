@@ -180,6 +180,19 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -z "$BUILD_PACKAGE" || -n "$DO_SETUP" ]]; then
+        local default_build_package="${BUILD_PACKAGE:-Ask}"
+        local msg=$(printf "Build the installer package after the compilation (%so, %ssk, %ses)" \
+                    $(echob "N") $(echob "A") $(echob "Y"))
+		local answer=$(prompt "$msg" "$default_build_package" 'N' 'A' 'Y')
+        case $(lc "$answer") in
+            n*) BUILD_PACKAGE='No'  ;;
+            y*) BUILD_PACKAGE='Yes' ;;
+            *)  BUILD_PACKAGE='Ask' ;;
+        esac
+		storeConfig 'BUILD_PACKAGE' "$BUILD_PACKAGE"
+        echo
+    fi
 }
 
 function checkUpdate() {
@@ -262,6 +275,8 @@ checkConfig
 
 target="${force_target:-$DEFAULT_TARGET}"
 unset force_target
+
+[[ $(lc "$BUILD_PACKAGE") == n* ]] && MAKE_PACKAGE=0
 
 # don't use -e
 set -u
@@ -701,46 +716,50 @@ function makePKG(){
         autoBuild "$1"
         echo "$last_timestamp" > "$lastModifiedFile"
     fi
-
     if [ "$MAKE_PACKAGE" -eq 1 ]; then
         local package_name="Clover_v2_r${versionToBuild}.pkg"
         if [[ ! -f "${builtPKGDIR}/$package_name" ]]; then # make pkg if not there
-            echob "Type 'm' To make ${package_name}..."
-            read choose
-            case $choose in
-            m|M)
-            if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
-                rm -rf "${CloverDIR}"/CloverPackage/sym
+            if [[ "$(lc $BUILD_PACKAGE)" == a* ]]; then
+                echob "Type 'm' To make ${package_name}..."
+                read choose
+            else
+                choose='m'
             fi
-            if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
-                if [ -f "${UserDIR}"/rc.local ]; then
-                    echob "copy User rc.local To Package"
-                    cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-                fi
 
-                if [ -f "${UserDIR}"/rc.shutdown.local ]; then
-                    echob "copy User rc.shutdown.local To Package"
-                    cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
-                fi
-            fi
-            cd "${CloverDIR}"/CloverPackage
-            echob "cd to ${CloverDIR}/CloverPackage and run ./makepkg."
-            export GETTEXT_PREFIX="$TOOLCHAIN"
-            ./makepkg "No" || exit $?
-            [[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
-            cp -p "${CloverDIR}"/CloverPackage/sym/*.pkg "${builtPKGDIR}"/
-            rm -rf "${CloverDIR}"/CloverPackage/sym
-            echob "open builtPKG"
-            open "${builtPKGDIR}"/
-            tput bel
-            ;;
-            *)
+            case $choose in
+                m|M)
+                     if [ -d "${CloverDIR}"/CloverPackage/sym ]; then
+                         rm -rf "${CloverDIR}"/CloverPackage/sym
+                     fi
+                     if [ -f "${UserDIR}"/rc.local ] || [ -f "${UserDIR}"/rc.shutdown.local ]; then
+                         if [ -f "${UserDIR}"/rc.local ]; then
+                             echob "copy User rc.local To Package"
+                             cp -R "${UserDIR}"/rc.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+                         fi
+
+                         if [ -f "${UserDIR}"/rc.shutdown.local ]; then
+                             echob "copy User rc.shutdown.local To Package"
+                             cp -R "${UserDIR}"/rc.shutdown.local "${CloverDIR}"/CloverPackage/CloverV2/etc
+                         fi
+                     fi
+                     cd "${CloverDIR}"/CloverPackage
+                     echob "cd to ${CloverDIR}/CloverPackage and run ./makepkg."
+                     export GETTEXT_PREFIX="$TOOLCHAIN"
+                     ./makepkg "No" || exit $?
+                     [[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
+                     cp -p "${CloverDIR}"/CloverPackage/sym/*.pkg "${builtPKGDIR}"/
+                     rm -rf "${CloverDIR}"/CloverPackage/sym
+                     echob "open builtPKG"
+                     open "${builtPKGDIR}"/
+                     tput bel
+                     ;;
+                *)
             esac
         else
             echob "$package_name ALREADY Made !"
         fi
     else
-        echob "Skipping pkg creation,"
+        echob "Skipping pkg creation."
         open "${cloverPKGDIR}"/CloverV2/
     fi
 }

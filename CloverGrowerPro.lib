@@ -42,12 +42,31 @@ function lc() {
     echo "$@" | tr '[A-Z]' '[a-z]'
 }
 
+# Check if an element is valid
+# Arguments:
+#    $1: string to validate
+#    $2+: array of valid elements
+#
+# Return the string if found else return an empty string
+function valid() {
+    local element
+    local lcString=$(lc "$1")
+    for element in $(lc ${@:2}); do
+        [[ "$lcString" == $element* ]] && echo "$1" && return 0
+    done
+    return 1
+}
+
 function prompt() {
-    local default=${2:+[$2]}
-    read -p "$1 $default: " answer >&2
-    if [[ -z "$answer" && -n "$2" ]]; then
-        answer="$2"
-    fi
+    local message="$1"
+    local default=${@:2:1}
+    local valid=${@:3}
+    local goodAnswer=0
+    until [[ "$goodAnswer" -eq 1 ]]; do
+        read -p "${message}${default:+ [$default]}: " answer >&2
+        [[ -z "$answer" && -n "$default" ]] && answer="$default"
+        [[ -z "$valid" || (-n "$valid" && -n "$(valid ${answer} $valid)") ]] && goodAnswer=1
+    done
     echo "$answer"
 }
 
