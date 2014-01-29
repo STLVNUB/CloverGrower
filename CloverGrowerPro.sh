@@ -413,7 +413,9 @@ function getSOURCEFILE() {
     local name="$1"
     local localdir="$2"
     local svnremoteurl="$3"
-    local remoteRev=$(getSvnRevision "$svnremoteurl")
+    local remoteRev # Don't define and affect a variable in a single line to retrieve return code
+    remoteRev=$(getSvnRevision "$svnremoteurl")
+    [[ $? -ne 0 ]] && return 1
     if [[ ! -d "$localdir" ]]; then
         echob "    ERROR:"
         echo  "        Local $localdir folder not found.."
@@ -461,6 +463,16 @@ function getSOURCE() {
         # Get edk2 source
         cd "${srcDIR}"
         getSOURCEFILE edk2 "$EDK2DIR" "$EDK2SVNURL"
+        local return_code=$?
+        if [[ $return_code -ne 0 && "$EDK2SVNURL" == svn://* ]]; then
+            echo $(sayColor yellow "Can't get edk2 source from svn transport protocol !")
+            echo $(sayColor yellow "Trying http transport protocol...")
+            EDK2SVNURL=$(echo "http${EDK2SVNURL#svn}")
+            getSOURCEFILE edk2 "$EDK2DIR" "$EDK2SVNURL"
+            return_code=$?
+        fi
+        [[ $return_code -ne 0 ]] && echo $(sayColor red "Unable to checkout new EDK2 sources !")
+
         local buildBaseTools=$?
 
         # Is edk2 need to be update

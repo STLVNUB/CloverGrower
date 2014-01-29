@@ -180,7 +180,9 @@ function getSvnRevision() {
     [[ $# -ne 1 ]] && echo "getSvnRevision: invalid number of arguments" >&2 && exit 1
     local svn_revision
     if [[ "$1" == *://* ]]; then
-        svn_revision=$(LC_ALL=C svn info "$1" | sed -n 's/^Revision: *//p')
+        svn_revision=$(LC_ALL=C svn info "$1" | sed -n 's/^Revision: *//p'; exit ${PIPESTATUS[0]})
+        local return_code=$?
+        [[ $return_code -ne 0 ]] && return $return_code
     else
         if [[ -d "$1/.git" ]]; then
             svn_revision=$(cd "$1" && LC_ALL=C git svn info 2>/dev/null | sed -n 's/^Revision: *//p')
