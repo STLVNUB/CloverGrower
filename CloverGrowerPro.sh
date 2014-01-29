@@ -127,6 +127,13 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -z "$EDK2SVNURL" || -n "$DO_SETUP" ]]; then
+        local default_edk2_svn_url='svn://svn.code.sf.net/p/edk2/code/trunk/edk2'
+        EDK2SVNURL=$(prompt "EDK2 svn url to use" "${EDK2SVNURL:-$default_edk2_svn_url}")
+        storeConfig 'EDK2SVNURL' "$EDK2SVNURL"
+        echo
+    fi
+
     if [[ -z "$DEFAULT_TARGET" || -n "$DO_SETUP" ]];then
         DEFAULT_TARGET=$(prompt "Default target(s) to use (ia32, x64, x64-mcp)" "${DEFAULT_TARGET:-x64}")
         storeConfig 'DEFAULT_TARGET' "$DEFAULT_TARGET"
@@ -453,7 +460,7 @@ function getSOURCE() {
     if [[ "${cloverUpdate}" == "Yes" ]]; then
         # Get edk2 source
         cd "${srcDIR}"
-        getSOURCEFILE edk2 "$EDK2DIR" "svn://svn.code.sf.net/p/edk2/code/trunk/edk2"
+        getSOURCEFILE edk2 "$EDK2DIR" "$EDK2SVNURL"
         local buildBaseTools=$?
 
         # Is edk2 need to be update
