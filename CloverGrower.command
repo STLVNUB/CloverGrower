@@ -1,5 +1,5 @@
 #!/bin/bash
-myV="6.14"
+myV="6.16"
 gccVers="4.8.2" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -36,22 +36,43 @@ theLink=/usr/local/bin/clover
 if [[ -L "$theShortcut"/CloverGrower.command ]]; then
 	theLink="$theShortcut"/CloverGrower.command
 fi
+
+#what system
+theSystem=$(uname -r)
+theSystem="${theSystem:0:2}"
+case "${theSystem}" in
+    [0-8]) rootSystem="unsupported" ;;
+    9) export rootSystem="Leopard" ;;
+    10) export rootSystem="Snow Leopard" ;;
+    11) export rootSystem="Lion" ;;
+    12)	export rootSystem="Mountain Lion" ;;
+    13)	export rootSystem="Mavericks" ;;
+    [14-20]) rootSystem="Unknown" ;;
+esac
+
 # XCode check
 if [ ! -f /usr/bin/gcc ]; then
 	echob "ERROR:"
 	echob "      Xcode Command Line Tools from Apple"
 	echob "      NOT FOUND!!!!"
 	echob "      CloverGrower.command needs it";echo
-	echob "      Going To Apple Developer Site"
-	echob "      Download & Install XCode Command Line Tools"
-	echob "      then re-run CloverGrower.command"
-	open "https://developer.apple.com/downloads/"
-	wait
-	echob "Good $hours $user"
-	tput bel
-	exit 1
+	if [ "${theSystem}" != 13 ] || [ ! -f /usr/bin/xcode-select ]; then
+		echob "      Going To Apple Developer Site"
+		echob "      Download & Install XCode Command Line Tools"
+		echob "      then re-run CloverGrower.command"
+		open "http://developer.apple.com/downloads/"
+	
+		echob "Good $hours $user"
+		tput bel
+		exit 1
+	else
+		echob "      Running on $rootSystem, Getting Command Line Tools from Apple"
+		echob "      re-run CloverGrower.command AFTER installing.."
+		xcode-select --install
+		echob "Good $hours $user"
+		exit 1
+	fi		
 fi
-
 #check for space in Volume name
 CLOVER_GROWER_DIR_SPACE=`echo "$CLOVER_GROWER_DIR" | tr ' ' '_'`
 if [[ "$CLOVER_GROWER_DIR_SPACE" != "$CLOVER_GROWER_DIR" ]]; then
@@ -173,18 +194,6 @@ elif [[ "$workSpace" -lt "$workSpaceMin" ]]; then
 fi
 workSpaceAvail="$workSpace"
 
-#what system
-theSystem=$(uname -r)
-theSystem="${theSystem:0:2}"
-case "${theSystem}" in
-    [0-8]) rootSystem="unsupported" ;;
-    9) export rootSystem="Leopard" ;;
-    10) export rootSystem="Snow Leopard" ;;
-    11) export rootSystem="Lion" ;;
-    12)	export rootSystem="Mountain Lion" ;;
-    13)	export rootSystem="Mavericks" ;;
-    [14-20]) rootSystem="Unknown" ;;
-esac
 
 # simple spinner
 function spinner()
@@ -218,9 +227,13 @@ function checkAuthor(){
 		theFlag=""
 	else 
 		theFlag="-r $2"
-	fi	
-	cloverInfo=$(svn --non-interactive --trust-server-cert info ${theFlag} svn://svn.code.sf.net/p/cloverefiboot/code)
-	theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
+	fi
+	cloverInfo=
+	while [ "$cloverInfo" == "" ]; do	
+		cloverInfo=$(svn info ${theFlag} svn://svn.code.sf.net/p/cloverefiboot/code)
+		theAuthor=$(echo "$cloverInfo" | grep 'Last Changed Author:')
+		sleep 1
+	done
 }
 
 # set up Revisions Clover
@@ -237,22 +250,23 @@ else
 	newCloverRev="${CloverREV}"	
 fi	
 #rEFIt
-refitstats=`svn --non-interactive --trust-server-cert info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
+refitstats=`svn info svn://svn.code.sf.net/p/cloverefiboot/code/rEFIt_UEFI | grep 'Last Changed Rev:'`
 export rEFItREV="${refitstats:18:10}"
-wait
+
 }
 
 # set up Revisions edk2
 function getREVISIONSedk2(){
-checksvn=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision"`
-wait
+checksvn=$(svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision")
+sleep 1
 export edk2REV="${checksvn:10:5}"
 if [ "$1" == "Initial" ]; then
-	basestats=`svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev'`
+	basestats=$(svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev')
+	sleep 1
 	basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
 	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
 	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
-	wait
+	
 fi
 }
 
@@ -265,16 +279,16 @@ function getSOURCEFILE() {
 	getREVISIONS${1} Initial this # flag to write initial revision
 	if [ ! -d "$1"/.svn ]; then
       	echo -n "    Check out $1  "
-		(svn co "$2" "$1" --non-interactive --trust-server-cert >/dev/null) &
+		(svn co "$2" "$1" >/dev/null) &
 	else
     	if [ "$1" == "Clover" ] && [ -d "${CloverDIR}"/.svn ]; then
 			theFlag="up --revision ${versionToBuild}"
 		else 
-			theFlag=up
+			theFlag="up"
 		fi
     	cd "$1"
     	echo -n "    Auto Update $1  "
-		(svn $theFlag --non-interactive --trust-server-cert >/dev/null) &
+		(svn $theFlag . >/dev/null) &
     fi
 	spinner $!
 	checkit "  SVN $1"
@@ -298,15 +312,15 @@ function getSOURCE() {
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
         	#cd "${edk2DIR}"
-	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "https://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	    	wait
+	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
+	    	
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
 	      fi	
 	fi
 	cd "${edk2DIR}"
 	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
-    wait
+    
     GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
 	# Check that the gettext utilities exists
 	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
@@ -556,7 +570,7 @@ function makePKG(){
     		echob "error!!! RETRY!!"
 	    	cd "${edk2DIR}"
 	    	svn cleanup
-	    	wait
+	    	
 	    	echo -n "    Auto Fixup edk2  "
 	    	(svn up --non-interactive --trust-server-cert >/dev/null) &
 	    	spinner $!
@@ -600,7 +614,7 @@ function makePKG(){
 			[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
 			./makepkg "No"
-			wait
+			
 			if [ ! -f "${CloverDIR}/CloverPackage/sym/Clover_v2k_r${versionToBuild}".pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
 				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower V$myV :)"
@@ -611,7 +625,7 @@ function makePKG(){
 		fi	
 		echob "run ./makeiso"
 		./makeiso "No"
-		wait
+		
 		if [ "$flagTime" == "Yes" ]; then
 			STOPBM=$(date -u "+%s")
 			RUNTIMEMB=$(expr $STOPBM - $STARTM)
