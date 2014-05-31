@@ -444,9 +444,10 @@ function getSOURCEFILE() {
     else
         update_repository --remote-url="$svnremoteurl" "$localdir"
     fi
+
     checkit "    Svn up $name" "$svnremoteurl"
 
-	return 1
+    return $?
 }
 
 # sets up svn sources
