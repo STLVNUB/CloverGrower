@@ -34,10 +34,10 @@ function checkit(){
 	local msg="$1"
 	local error_msg="${2:-}"
 	if [[ "${return_val}" -eq 0 ]]; then
-		echob "CloverGrower V$myV $msg OK"
+		echob "CloverGrower V$myVersion $msg OK"
         return $return_val
 	else
-		echob "CloverGrower V$myV $msg $error_msg ERROR!!"
+		echob "CloverGrower V$myVersion $msg $error_msg ERROR!!"
 		echob "Good $hours"
 		exit $return_val
 	fi

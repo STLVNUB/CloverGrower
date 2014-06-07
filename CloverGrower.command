@@ -1,6 +1,6 @@
 #!/bin/bash
-myV="6.16"
-gccVers="4.8.2" 
+myVersion="6.19"
+export gccVers="4.8.3" 
 # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -47,7 +47,8 @@ case "${theSystem}" in
     11) export rootSystem="Lion" ;;
     12)	export rootSystem="Mountain Lion" ;;
     13)	export rootSystem="Mavericks" ;;
-    [14-20]) rootSystem="Unknown" ;;
+    14)	export rootSystem="Yosemite" ;;
+    [15-20]) rootSystem="Unknown" ;;
 esac
 
 # XCode check
@@ -139,7 +140,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 	if [[ ! -L /usr/local/bin/clover || $(readlink /usr/local/bin/clover) != "$CLOVER_GROWER_SCRIPT" ]]; then
 		echob "Running CloverGrower.command"
 		theText="link"
-		echob "To make CloverGrower V$myV easier to use"
+		echob "To make CloverGrower V$myVersion easier to use"
 		echob "I will do one of the following:"
 		echo "    Create link, in /usr/local/bin.     Select any key"
 		echo "    Create Shortcut, put it on Desktop. Select 's'"
@@ -169,7 +170,7 @@ if [[ ! -L "$theShortcut"/CloverGrower.command || $(readlink "$theShortcut"/Clov
 fi
 
 if [[ ! -f "${workDIR}"/vers.txt ]]; then
-	echo $myV >"${workDIR}"/vers.txt
+	echo $myVersion >"${workDIR}"/vers.txt
 fi	
 flagTime="No" # flag for complete download/build time, GCC, edk2, Clover, pkg
 
@@ -213,7 +214,7 @@ function spinner()
 		
 function notify(){
 if [ -f "${notifier}" ] && [ "${theSystem}" -ge "12" ]; then
-	Title="CloverGrower V$myV"
+	Title="CloverGrower V$myVersion"
 	#$1 = Message
 	echob "$Title $1"
 	"${notifier}" -message "$1" -title "$Title"
@@ -351,9 +352,14 @@ function cleanRUN(){
 	fi
 	cd "${CloverDIR}"
 	for az in $archBits ; do
-		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style"
+		if [ $az == mc ]; then
+			theMacro="-D DISABLE_USB_SUPPORT"
+		else
+			theMacro=""
+		fi	
+		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style $theMacro"
 		sleep 2
-		./ebuild.sh -$az -r
+		./ebuild.sh -$az -r "$theMacro"
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
 	done	
@@ -395,15 +401,16 @@ function checkGCC(){
     if [ -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
     	local lVers=$("${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc -dumpversion)
         export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
-        echo "  gcc $lVers detected"
-        echo "  Fixing gcc…"
+        echo "  gcc $lVers detected, will use it"
+      	echo "  Fixing gcc…"
         MakeSymLinks
         return
-    fi
-	echob "$archBit GCC$gccVers NOT installed";echo
+    else
+    	echob "$archBit GCC$gccVers NOT installed";echo
+	fi
 	echob "Press 'i' To install to ~/src/opt/local"
 	echob "OR"
-	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower V$myV"
+	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower V$myVersion"
 	read choose
 	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
 	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
@@ -461,7 +468,7 @@ function makePKG(){
 	echo
 	echob "********************************************"
 	echob "*             Good $hours              *"
-	echob "*      Welcome To CloverGrower V$myV       *"
+	echob "*      Welcome To CloverGrower V$myVersion       *"
 	echob "*        This script by STLVNUB            *"
 	echob "* Clover Credits: Slice, dmazar and others *"
 	echob "********************************************"
@@ -563,7 +570,7 @@ function makePKG(){
     else 
 	    cloverUpdate="Yes"
     fi
-    if [[ ! -e "${edk2DIR}"/edksetup.sh ]]; then
+    if [[ ! -e "${edk2DIR}"/edksetup.sh || ! -d "${edk2DIR}"/BaseTools ]]; then
     	getREVISIONSedk2 "test"
     	if [[ -d "${edk2DIR}"/.svn ]]; then
     		echob "svn edk2 revision: ${edk2REV}"
@@ -617,7 +624,7 @@ function makePKG(){
 			
 			if [ ! -f "${CloverDIR}/CloverPackage/sym/Clover_v2k_r${versionToBuild}".pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
-				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower V$myV :)"
+				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower V$myVersion :)"
 				exit 1
 			else
 				echob "Clover_v2k_r${versionToBuild}.pkg	successfully built"
@@ -634,7 +641,7 @@ function makePKG(){
 			else
 				TTIMEMB=$(printf "%ds\n" $((RUNTIMEMB)))
 			fi
-			echob "CloverGrower V$myV Complete Build process took $TTIMEMB to complete..."
+			echob "CloverGrower V$myVersion Complete Build process took $TTIMEMB to complete..."
 		else
 			STOPM=$(date -u "+%s")
 			RUNTIMEM=$(expr $STOPM - $STARTM)
@@ -691,8 +698,9 @@ getInstalledLoader(){
 		gFWVers=$(echo $gBootLog | awk '{print $6}')
 		gCloverLoader="Booting with $gFWLoader r$gFWVers EFI :) on $gTheLoader"
 	elif [[ "$gTheLoader" != "" ]]; then
-    	gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
-            "    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g')
+    	#gRefitVers=$(ioreg -lw0 -pIODeviceTree | grep boot-log | tr -d \
+            #"    |       "boot-log" = <\">" | LANG=C sed -e 's/.*72454649742072657620//' -e 's/206f6e20.*//' | xxd -r -p | sed 's/:/ /g')
+        gRefitVers=2642
         gCloverLoader="Booting via Clover r${gRefitVers} BOOT${efiBITS}.efi with ${gTheLoader} UEFI"
     elif [[ "$gTheLoader" == "" ]]; then
         gTheLoader="Unknown_${efiBITS}"
@@ -710,13 +718,13 @@ getInstalledLoader(){
 }
 # setup gcc
 export CG_PREFIX="${TOOLCHAIN}"/cross 
-if [ ! -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
-		checkGCC
-fi
-getInstalledLoader # check what user is Booting with ;)
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
+if [ ! -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
+	checkGCC
+fi	
+getInstalledLoader # check what user is Booting with ;)
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
 makePKG "$target" # do complete build
-notify "Good $hours $user, Thanks for using CloverGrower V$myV" 
+notify "Good $hours $user, Thanks for using CloverGrower V$myVersion" 
