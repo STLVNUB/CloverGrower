@@ -338,7 +338,8 @@ case "${theSystem}" in
     11) rootSystem="Lion" ;;
     12) rootSystem="Mountain Lion" ;;
     13) rootSystem="Mavericks" ;;
-    [14-20]) rootSystem="Unknown" ;;
+    14) rootSystem="Yosemite" ;;
+    [15-20]) rootSystem="Unknown" ;;
 esac
 
 function checkCloverLink() {
