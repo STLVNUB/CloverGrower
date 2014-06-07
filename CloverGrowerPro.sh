@@ -333,13 +333,13 @@ theSystem=$(uname -r)
 theSystem="${theSystem:0:2}"
 case "${theSystem}" in
     [0-8]) rootSystem="unsupported" ;;
-    9) rootSystem="Leopard" ;;
+     9) rootSystem="Leopard" ;;
     10) rootSystem="Snow Leopard" ;;
     11) rootSystem="Lion" ;;
     12) rootSystem="Mountain Lion" ;;
     13) rootSystem="Mavericks" ;;
     14) rootSystem="Yosemite" ;;
-    [15-20]) rootSystem="Unknown" ;;
+     *) rootSystem="Unknown" ;;
 esac
 
 function checkCloverLink() {
