@@ -1,7 +1,6 @@
 #!/bin/bash
 
 declare -r CloverGrowerVersion="5.0"
-declare -r gccVersToUse="4.7.2" # failsafe check
 declare -r self="${0##*/}"
 
 # Reset locales (important when grepping strings from output commands)
@@ -225,123 +224,6 @@ argument() {
     echo $1
 }
 
-# Check the arguments.
-declare -a ARGS=()
-force_target=
-
-set -e
-while [[ $# -gt 0 ]]; do
-    option=$1
-
-    case "$option" in
-        -h | --help)
-                     usage
-                     exit 0 ;;
-        -v | --version)
-                     echo "$self $CloverGrowerVersion"
-                     exit 0 ;;
-        -r | --revision)
-                     shift
-                     FORCE_REVISION=$(argument $option "$@"); shift
-                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
-        --revision=*)
-                     shift
-                     FORCE_REVISION=$(echo "$option" | sed 's/--revision=//')
-                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
-        -t | --target)
-                     shift
-                     force_target=$(argument $option "$@"); shift
-                     ARGS[${#ARGS[*]}]="--target=$target" ;;
-        --target=*)
-                     shift
-                     force_target=$(echo "$option" | sed 's/--target=//')
-                     ARGS[${#ARGS[*]}]="--target=$target" ;;
-        -s | --setup)
-                     shift
-                     DO_SETUP=1
-                     ARGS[${#ARGS[*]}]="$option" ;;
-        -u | --check-update)
-                     shift
-                     FORCE_CHECK_UPDATE=1 ;;
-        --use-local-buildgcc)
-                     shift
-                     USE_LOCAL_BUILDGCC=1 ;;
-        *)
-            printf "Unrecognized option \`%s'\n" "$option" 1>&2
-            usage
-            exit 1
-            ;;
-    esac
-
-done
-set +e
-
-checkOptions
-checkUpdate
-checkConfig
-
-target="${force_target:-$DEFAULT_TARGET}"
-unset force_target
-
-[[ $(lc "$BUILD_PACKAGE") == n* ]] && MAKE_PACKAGE=0
-
-# don't use -e
-set -u
-
-theBoss=$(id -ur)
-hours=$(get_hours)
-
-#vars
-export WORKDIR="$CLOVER_GROWER_PRO_DIR"
-export TOOLCHAIN="${CLOVER_GROWER_PRO_DIR}/toolchain"
-workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
-workSpaceNeeded="522"
-workSpaceMin="104"
-filesDIR="${WORKDIR}"/Files
-UserDIR="${WORKDIR}"/User/etc
-etcDIR="${WORKDIR}"/Files/etc
-srcDIR="${WORKDIR}"/src
-CloverDIR="${EDK2DIR}"/Clover
-rEFItDIR="${CloverDIR}"/rEFIt_UEFI
-buildDIR="${EDK2DIR}"/Build
-cloverPKGDIR="${CloverDIR}"/CloverPackage
-builtPKGDIR="${WORKDIR}"/builtPKG
-lastModifiedFile="$filesDIR"/.last_modified
-theBuiltVersion=""
-
-# Some Flags
-buildClover=0
-
-[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
-
-style=release
-
-if [[ ! -d "$EDK2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
-    echob "error!!! Not enough free space"
-    echob "Need at least $workSpaceNeeded bytes free"
-    echob "Only have $workSpace bytes"
-    echob "move CloverGrower to different Folder"
-    echob "OR free some space"
-    exit 1
-elif [[ "$workSpace" -lt "$workSpaceMin" ]]; then
-    echob "Getting low on free space"
-fi
-workSpaceAvail="$workSpace"
-
-#what system
-theSystem=$(uname -r)
-theSystem="${theSystem:0:2}"
-case "${theSystem}" in
-    [0-8]) rootSystem="unsupported" ;;
-     9) rootSystem="Leopard" ;;
-    10) rootSystem="Snow Leopard" ;;
-    11) rootSystem="Lion" ;;
-    12) rootSystem="Mountain Lion" ;;
-    13) rootSystem="Mavericks" ;;
-    14) rootSystem="Yosemite" ;;
-     *) rootSystem="Unknown" ;;
-esac
-
 function checkCloverLink() {
     if [[ ! -L "/usr/local/bin/cloverpro" || $(readlink "/usr/local/bin/cloverpro") != "$CLOVER_GROWER_PRO_SCRIPT" ]]; then
         echob "Running CloverGrowerPro.sh"
@@ -503,14 +385,14 @@ function getSOURCE() {
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
     local archs=$(echo "$1" | awk '{print toupper($0)}')
-    local ebuild_command=("./ebuild.sh" "-gcc${mygccVers}" "-$style")
+    local ebuild_command=("./ebuild.sh" "-${ebuildToolchainFlag}" "-$style")
 
     # Clear the package dir before compilation
     [[ "$versionToBuild" -ge 1166 ]] && ./ebuild.sh cleanpkg &>/dev/null
 
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
-    echo "Building Clover$archs, gcc${mygccVers} $style"
+    echo "Building Clover$archs, ${ebuildToolchainFlag} $style"
 
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
@@ -606,8 +488,8 @@ autoBuild(){
         echob "$(printf '*    Revisions:   %s: %-29s%s\n' $(sayColor info 'edk2') $(sayColor green $edk2LocalRev) $(echob '*'))"
         echob "$(printf '*               %s: %-29s%s\n' $(sayColor info 'Clover') $(sayColor $buildVersioncolor $versionToBuild) $(echob '*'))"
         local IFS=
-        local flags="$mygccVers $theARCHS $style"
-        echob "$(printf '*    Using Flags: gcc%-21s*\n' $flags)"
+        local flags="$ebuildToolchainFlag $theARCHS $style"
+        echob "$(printf '*    Using Flags: %-24s*\n' $flags)"
         echob "*******************************************"
         tput bel
         sleep 3
@@ -785,10 +667,129 @@ function makePKG(){
     fi
 }
 
+# Check the arguments.
+declare -a ARGS=()
+force_target=
+
+set -e
+while [[ $# -gt 0 ]]; do
+    option=$1
+
+    case "$option" in
+        -h | --help)
+                     usage
+                     exit 0 ;;
+        -v | --version)
+                     echo "$self $CloverGrowerVersion"
+                     exit 0 ;;
+        -r | --revision)
+                     shift
+                     FORCE_REVISION=$(argument $option "$@"); shift
+                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
+        --revision=*)
+                     shift
+                     FORCE_REVISION=$(echo "$option" | sed 's/--revision=//')
+                     ARGS[${#ARGS[*]}]="--revision=$FORCE_REVISION" ;;
+        -t | --target)
+                     shift
+                     force_target=$(argument $option "$@"); shift
+                     ARGS[${#ARGS[*]}]="--target=$target" ;;
+        --target=*)
+                     shift
+                     force_target=$(echo "$option" | sed 's/--target=//')
+                     ARGS[${#ARGS[*]}]="--target=$target" ;;
+        -s | --setup)
+                     shift
+                     DO_SETUP=1
+                     ARGS[${#ARGS[*]}]="$option" ;;
+        -u | --check-update)
+                     shift
+                     FORCE_CHECK_UPDATE=1 ;;
+        --use-local-buildgcc)
+                     shift
+                     USE_LOCAL_BUILDGCC=1 ;;
+        *)
+            printf "Unrecognized option \`%s'\n" "$option" 1>&2
+            usage
+            exit 1
+            ;;
+    esac
+
+done
+set +e
+
+checkOptions
+checkUpdate
+checkConfig
+
+target="${force_target:-$DEFAULT_TARGET}"
+unset force_target
+
+[[ $(lc "$BUILD_PACKAGE") == n* ]] && MAKE_PACKAGE=0
+
+# don't use -e
+set -u
+
+theBoss=$(id -ur)
+hours=$(get_hours)
+
+#vars
+export WORKDIR="$CLOVER_GROWER_PRO_DIR"
+export TOOLCHAIN="${CLOVER_GROWER_PRO_DIR}/toolchain"
+workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
+workSpaceNeeded="522"
+workSpaceMin="104"
+filesDIR="${WORKDIR}"/Files
+UserDIR="${WORKDIR}"/User/etc
+etcDIR="${WORKDIR}"/Files/etc
+srcDIR="${WORKDIR}"/src
+CloverDIR="${EDK2DIR}"/Clover
+rEFItDIR="${CloverDIR}"/rEFIt_UEFI
+buildDIR="${EDK2DIR}"/Build
+cloverPKGDIR="${CloverDIR}"/CloverPackage
+builtPKGDIR="${WORKDIR}"/builtPKG
+lastModifiedFile="$filesDIR"/.last_modified
+theBuiltVersion=""
+
+# Some Flags
+buildClover=0
+
+[[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
+
+style=release
+
+if [[ ! -d "$EDK2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
+    echob "error!!! Not enough free space"
+    echob "Need at least $workSpaceNeeded bytes free"
+    echob "Only have $workSpace bytes"
+    echob "move CloverGrower to different Folder"
+    echob "OR free some space"
+    exit 1
+elif [[ "$workSpace" -lt "$workSpaceMin" ]]; then
+    echob "Getting low on free space"
+fi
+workSpaceAvail="$workSpace"
+
+#what system
+theSystem=$(uname -r)
+theSystem="${theSystem:0:2}"
+case "${theSystem}" in
+    [0-8]) rootSystem="unsupported" ;;
+     9) rootSystem="Leopard" ;;
+    10) rootSystem="Snow Leopard" ;;
+    11) rootSystem="Lion" ;;
+    12) rootSystem="Mountain Lion" ;;
+    13) rootSystem="Mavericks" ;;
+    14) rootSystem="Yosemite" ;;
+     *) rootSystem="Unknown" ;;
+esac
+
 # Check CloverGrower build environment
 checkEnv
 
-export mygccVers="${gccVersToUse:0:1}${gccVersToUse:2:1}" # needed for BUILD_TOOLS e.g GCC47
+declare -r gccVersToUse=$("${TOOLCHAIN}"/bin/gcc -dumpversion)
+declare -r ebuildToolchainFlag='gcc47'
+
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No"
