@@ -280,7 +280,7 @@ function checkEnv() {
 }
 
 function getLastModifiedSource() {
-    find "$CloverDIR"                                                                             \
+    find "$CloverDIR/"                                                                            \
      -type d \( -path '*/.svn' -o -path '*/.git' -o -path '*/CloverPackage/CloverV2' \) -prune -o \
      -type f -print0 | xargs -0 stat -f "%m %N" |                                                 \
      egrep -v 'vers.txt|Version.h|.DS_Store|\.efi$' | sort -n | tail -1 |                         \
