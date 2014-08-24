@@ -735,7 +735,6 @@ hours=$(get_hours)
 
 #vars
 export WORKDIR="$CLOVER_GROWER_PRO_DIR"
-export TOOLCHAIN="${CLOVER_GROWER_PRO_DIR}/toolchain"
 workSpace=$(df -m "${WORKDIR}" | tail -n1 | awk '{ print $4 }')
 workSpaceNeeded="522"
 workSpaceMin="104"
