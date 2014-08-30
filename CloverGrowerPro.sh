@@ -267,6 +267,9 @@ function checkToolchain() {
     if [[ ! -x "${TOOLCHAIN}/bin/msgmerge" ]]; then
         installGettext
     fi
+    if [[ ! -x "${TOOLCHAIN}/bin/nasm" ]]; then
+        installNasm
+    fi
 }
 
 # Check the build environment
@@ -465,11 +468,27 @@ function installGettext() {
     echob "Checking out last version of buildgettext.sh from clover..."
     svn export --force "$CLOVERSVNURL"/buildgettext.sh "$srcDIR"/buildgettext.sh >/dev/null
 
-    echob "Starting CloverGrower Compile Tools process..."
+    echob "Starting CloverGrower Compile GetText process..."
     date
     # build gettext
     PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
      "$srcDIR"/buildgettext.sh
+    tput bel
+    cd ..
+}
+
+function installNasm() {
+    cd "${WORKDIR}"/Files
+
+    # Get the latest version of buildnasl.sh from clover
+    echob "Checking out last version of buildnasm.sh from clover..."
+    svn export --force "$CLOVERSVNURL"/buildnasm.sh "$srcDIR"/buildnasm.sh >/dev/null
+
+    echob "Starting CloverGrower Compile Nasm process..."
+    date
+    # build gettext
+    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+     "$srcDIR"/buildnasm.sh
     tput bel
     cd ..
 }
