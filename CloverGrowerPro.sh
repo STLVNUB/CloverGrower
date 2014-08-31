@@ -282,11 +282,13 @@ function checkEnv() {
     checkToolchain
 }
 
-function getLastModifiedSource() {
-    find "$CloverDIR/"                                                                            \
-     -type d \( -path '*/.svn' -o -path '*/.git' -o -path '*/CloverPackage/CloverV2' \) -prune -o \
-     -type f -print0 | xargs -0 stat -f "%m %N" |                                                 \
-     egrep -v 'vers.txt|Version.h|.DS_Store|\.efi$' | sort -n | tail -1 |                         \
+function getCloverLastModifiedSource() {
+    find "$CloverDIR/"                                                                             \
+     -type d \( -path '*/.svn' -o -path '*/.git' -o -path '*/CloverPackage/CloverV2'               \
+     -o -path '*/CloverPackage/sym' -o -path '*/CloverPackage/CloverUpdater'                       \
+     -o -path '*/CloverPackage/CloverPrefpane'                                        \) -prune -o \
+     -type f -print0 | xargs -0 stat -f "%m %N" |                                                  \
+     egrep -v 'vers.txt|Version.h|revision|version|.DS_Store|\.efi$' | sort -n | tail -1 |         \
      cut -f1 -d' ' # ' fix xemacs fontification
 }
 
@@ -622,7 +624,7 @@ function makePKG(){
     fi
 
     # Check last modified file
-    local last_timestamp=$(getLastModifiedSource)
+    local last_timestamp=$(getCloverLastModifiedSource)
     local last_save_timestamp=$(cat "$lastModifiedFile" 2>/dev/null || echo '0')
 
     # If not already built force Clover build
