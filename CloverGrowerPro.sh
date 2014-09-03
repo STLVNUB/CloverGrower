@@ -606,20 +606,22 @@ function makePKG(){
     fi
 
     if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" || \
-          $(grep -c 'GCC47_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0 ]]; then
+	      $(grep -c 'GCC47_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0        || \
+          "${CloverDIR}/Patches_for_EDK2/tools_def.txt" -nt "${EDK2DIR}/Conf/tools_def.txt" ]]; then
         # get configuration files from Clover
         cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${EDK2DIR}/Conf/"
         cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${EDK2DIR}/Conf/"
 
-        # Patch edk2/Conf/tools_def.txt for GCC
-        sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
-         "${EDK2DIR}/Conf/tools_def.txt"
-        checkit "Patching edk2/Conf/tools_def.txt for GCC"
-
-        # Patch edk2/Conf/tools_def.txt for NASM
-        sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
-         "${EDK2DIR}/Conf/tools_def.txt"
-        checkit "Patching edk2/Conf/tools_def.txt for NASM"
+        # tools_def.txt need to be patch for version < 2863
+        if [[ "$versionToBuild" -lt 2863 ]]; then
+            # Patch edk2/Conf/tools_def.txt for GCC
+            sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
+             "${EDK2DIR}/Conf/tools_def.txt"
+			# Patch edk2/Conf/tools_def.txt for NASM
+			sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
+			 "${EDK2DIR}/Conf/tools_def.txt"
+			checkit "Patching edk2/Conf/tools_def.txt for NASM"
+		fi
 
         rm -Rf "${buildDIR}"/*
         checkit "Clover updated, so rm the build folder"
