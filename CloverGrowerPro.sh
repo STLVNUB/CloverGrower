@@ -614,7 +614,12 @@ function makePKG(){
         # Patch edk2/Conf/tools_def.txt for GCC
         sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
          "${EDK2DIR}/Conf/tools_def.txt"
-        checkit "Patching edk2/Conf/tools_def.txt"
+        checkit "Patching edk2/Conf/tools_def.txt for GCC"
+
+        # Patch edk2/Conf/tools_def.txt for NASM
+        sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
+         "${EDK2DIR}/Conf/tools_def.txt"
+        checkit "Patching edk2/Conf/tools_def.txt for NASM"
 
         rm -Rf "${buildDIR}"/*
         checkit "Clover updated, so rm the build folder"
