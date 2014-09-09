@@ -632,10 +632,12 @@ function makePKG(){
 
     # Check last modified file
     local last_timestamp=$(getCloverLastModifiedSource)
-    local last_save_timestamp=$(cat "$lastModifiedFile" 2>/dev/null || echo '0')
+    local last_built_timestamp=$(cat "$lastBuiltTimestampFile" 2>/dev/null || echo '0')
+    local last_conf_timestamp=$(stat -f "%m" "$CLOVER_GROWER_PRO_CONF")
 
     # If not already built force Clover build
-    if [[ "$built" == "No" && "$last_timestamp" -ne "$last_save_timestamp" ]]; then
+    if [[ "$built" == "No" &&  ( "$last_built_timestamp" -lt "$last_timestamp" || \
+          "$last_built_timestamp" -lt "$last_conf_timestamp" ) ]]; then
         printf "%s %s\n" "$(echob 'No build already done.')" \
          "$(sayColor info 'Forcing Clover build...')"
         echo
@@ -645,7 +647,7 @@ function makePKG(){
     if [[ "$buildClover" -eq 1 ]]; then
         echob "Ready to build Clover $versionToBuild, Using Gcc $gccVersToUse"
         autoBuild "$1"
-        echo "$last_timestamp" > "$lastModifiedFile"
+        date -j '+%s' > "$lastBuiltTimestampFile"
     fi
     if [ "$MAKE_PACKAGE" -eq 1 ]; then
         local package_name="Clover_v2_r${versionToBuild}.pkg"
@@ -775,7 +777,7 @@ rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${EDK2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
-lastModifiedFile="$filesDIR"/.last_modified
+lastBuiltTimestampFile="$filesDIR"/.last_built
 theBuiltVersion=""
 
 # Some Flags
