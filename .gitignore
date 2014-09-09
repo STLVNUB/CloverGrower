@@ -8,6 +8,7 @@ CloverGrowerPro.conf
 
 # Auto generated files
 /.last_check
+/Files/.last_built
 
 # Directories that we doesn't need to track
 builtPKG/
