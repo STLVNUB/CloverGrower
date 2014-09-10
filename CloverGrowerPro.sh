@@ -473,9 +473,9 @@ function installGettext() {
     echob "Starting CloverGrower Compile GetText process..."
     date
     # build gettext
-    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+    TOOLCHAIN_DIR="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
      "$srcDIR"/buildgettext.sh
-    tput bel
+    checkit "GetText binaries built"
     cd ..
 }
 
@@ -489,9 +489,9 @@ function installNasm() {
     echob "Starting CloverGrower Compile Nasm process..."
     date
     # build gettext
-    PREFIX="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
+    TOOLCHAIN_DIR="$TOOLCHAIN" DIR_MAIN="$srcDIR" DIR_TOOLS="$srcDIR/CloverTools" \
      "$srcDIR"/buildnasm.sh
-    tput bel
+    checkit "NASM binary built"
     cd ..
 }
 
