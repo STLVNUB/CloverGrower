@@ -392,7 +392,6 @@ function getSOURCE() {
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
     local archs=$(echo "$1" | awk '{print toupper($0)}')
-    local ebuild_command=("./ebuild.sh" "-${ebuildToolchainFlag}" "-$style")
 
     # Clear the package dir before compilation
     [[ "$versionToBuild" -ge 1166 ]] && ./ebuild.sh cleanpkg &>/dev/null
@@ -404,29 +403,15 @@ function cleanRUN(){
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
 
-    # We can activate VBios Patch in CloverEFI since revision 1162 of Clover
-    [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 && "$versionToBuild" -ge 1162 ]] && \
-     ebuild_command+=("--vbios-patch-cloverefi")
-
-    # We can activate Only SATA0 Patch in CloverEFI since revision 1853 of Clover
-    [[ "$ONLY_SATA0_PATCH" -ne 0 && "$versionToBuild" -ge 1853 ]] && \
-     ebuild_command+=("--only-sata0")
-
-    # We can activate Secure Bool in CloverEFI since revision 2436 of Clover
-    [[ "$ENABLE_SECURE_BOOT" -ne 0 && "$versionToBuild" -ge 2436 ]] && \
-     ebuild_command+=(-D ENABLE_SECURE_BOOT)
-
-    [[ -n "${EBUILD_OPTIONAL_ARGS:-}" ]] && ebuild_command+=($EBUILD_OPTIONAL_ARGS)
-
     cd "${CloverDIR}"
     local IFS=" /" # archs can be separate by space or /
     local archs=$(lc $archs)
     unset IFS
     echo "Using TOOLCHAIN_DIR='$TOOLCHAIN'"
     for arch in $archs; do
-        echob "running ${ebuild_command[@]} --$arch"
+        echob "running ${EBUILD_COMMAND[@]} --$arch"
         echo
-        TOOLCHAIN_DIR="$TOOLCHAIN" ${ebuild_command[@]} --$arch
+        TOOLCHAIN_DIR="$TOOLCHAIN" ${EBUILD_COMMAND[@]} --$arch
         checkit "Clover$arch $style"
     done
 
@@ -537,6 +522,7 @@ autoBuild(){
 
 # makes pkg if Built OR builds THEN makes pkg
 function makePKG(){
+    local theARCHS="$1"
     echo
     echob "********************************************"
     echob "*              Good $hours              *"
@@ -636,14 +622,33 @@ function makePKG(){
         checkit "Copy Files/HFSPlus Clover/HFSPlus"
     fi
 
+    # Construct EBUILD_COMMAND
+    EBUILD_COMMAND=("./ebuild.sh" "-${ebuildToolchainFlag}" "-$style")
+
+    # We can activate VBios Patch in CloverEFI since revision 1162 of Clover
+    [[ "$VBIOS_PATCH_IN_CLOVEREFI" -ne 0 && "$versionToBuild" -ge 1162 ]] && \
+     EBUILD_COMMAND+=("--vbios-patch-cloverefi")
+
+    # We can activate Only SATA0 Patch in CloverEFI since revision 1853 of Clover
+    [[ "$ONLY_SATA0_PATCH" -ne 0 && "$versionToBuild" -ge 1853 ]] && \
+     EBUILD_COMMAND+=("--only-sata0")
+
+    # We can activate Secure Bool in CloverEFI since revision 2436 of Clover
+    [[ "$ENABLE_SECURE_BOOT" -ne 0 && "$versionToBuild" -ge 2436 ]] && \
+     EBUILD_COMMAND+=(-D ENABLE_SECURE_BOOT)
+
+    [[ -n "${EBUILD_OPTIONAL_ARGS:-}" ]] && EBUILD_COMMAND+=($EBUILD_OPTIONAL_ARGS)
+    local check_ebuild_options="${EBUILD_COMMAND[@]} $theARCHS"
+    local last_ebuild_options=""
+    [[ -f "$last_ebuild_options_file" ]] && last_ebuild_options=$(cat "$last_ebuild_options_file")
+
     # Check last modified file
     local last_timestamp=$(getCloverLastModifiedSource)
-    local last_built_timestamp=$(cat "$lastBuiltTimestampFile" 2>/dev/null || echo '0')
-    local last_conf_timestamp=$(stat -f "%m" "$CLOVER_GROWER_PRO_CONF")
+    local last_save_timestamp=$(stat -f '%m' "$last_ebuild_options_file" 2>/dev/null || echo '0')
 
     # If not already built force Clover build
-    if [[ "$built" == "No" &&  ( "$last_built_timestamp" -lt "$last_timestamp" || \
-          "$last_built_timestamp" -lt "$last_conf_timestamp" ) ]]; then
+    if [[ "$built" == "No" && ( "$last_timestamp" -gt "$last_save_timestamp" || \
+          "$last_ebuild_options" != "$check_ebuild_options" ) ]]; then
         printf "%s %s\n" "$(echob 'No build already done.')" \
          "$(sayColor info 'Forcing Clover build...')"
         echo
@@ -652,8 +657,8 @@ function makePKG(){
 
     if [[ "$buildClover" -eq 1 ]]; then
         echob "Ready to build Clover $versionToBuild, Using Gcc $gccVersToUse"
-        autoBuild "$1"
-        date -j '+%s' > "$lastBuiltTimestampFile"
+        autoBuild "$theARCHS"
+        echo "$check_ebuild_options" > "$last_ebuild_options_file"
     fi
     if [ "$MAKE_PACKAGE" -eq 1 ]; then
         local package_name="Clover_v2_r${versionToBuild}.pkg"
@@ -786,7 +791,7 @@ rEFItDIR="${CloverDIR}"/rEFIt_UEFI
 buildDIR="${EDK2DIR}"/Build
 cloverPKGDIR="${CloverDIR}"/CloverPackage
 builtPKGDIR="${WORKDIR}"/builtPKG
-lastBuiltTimestampFile="$filesDIR"/.last_built
+last_ebuild_options_file="$filesDIR"/.last_ebuild_options
 theBuiltVersion=""
 
 # Some Flags
