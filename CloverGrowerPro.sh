@@ -34,6 +34,7 @@ CLOVER_REMOTE_REV=
 CLOVER_LOCAL_REV=
 FORCE_REVISION=
 FORCE_CHECK_UPDATE=0
+UPDATE_SOURCES=1
 FW_VBIOS_PATH=
 USE_LOCAL_BUILDGCC=0
 
@@ -46,6 +47,7 @@ usage () {
     printOptionHelp "-r, --revision"     "compile a specific Clover revision"
     printOptionHelp "-t, --target"       "choose target(s) to build [default=x64]. Targets currently supported: ia32, x64 and x64-mcp. You can specify multiple targets (ie. --target=\"ia32 x64\")."
     printOptionHelp "-u, --check-update" "force check update."
+    printOptionHelp "-n, --no-source-updates" "Disable clover and edk2 source updates."
     printOptionHelp "-s, --setup"        "setup $self."
     printOptionHelp "-h, --help"         "print this message and exit"
     printOptionHelp "-v, --version"      "print the version information and exit"
@@ -567,7 +569,11 @@ function makePKG(){
             if [[ -n "$FORCE_REVISION" ]]; then
                 versionToBuild=$FORCE_REVISION
             else
-                CLOVER_REMOTE_REV=$(getSvnRevision "$CLOVERSVNURL")
+                if [[ "$UPDATE_SOURCES" -eq 1 ]]; then
+                    CLOVER_REMOTE_REV=$(getSvnRevision "$CLOVERSVNURL")
+                else
+                    CLOVER_REMOTE_REV=$CLOVER_LOCAL_REV
+                fi
                 versionToBuild=$CLOVER_REMOTE_REV
             fi
 
@@ -735,6 +741,9 @@ while [[ $# -gt 0 ]]; do
         -u | --check-update)
                      shift
                      FORCE_CHECK_UPDATE=1 ;;
+        -n | --no-source-updates)
+                     shift
+                     UPDATE_SOURCES=0 ;;
         --use-local-buildgcc)
                      shift
                      USE_LOCAL_BUILDGCC=1 ;;
