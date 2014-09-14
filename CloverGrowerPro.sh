@@ -227,7 +227,7 @@ argument() {
 function checkCloverLink() {
     if [[ ! -L "/usr/local/bin/cloverpro" || $(readlink "/usr/local/bin/cloverpro") != "$CLOVER_GROWER_PRO_SCRIPT" ]]; then
         echob "Running CloverGrowerPro.sh"
-        printf "Will create link %s to %s\n" $(echob "/usr/local/bin/clover") $(echob "CloverGrowerPro.sh")
+        printf "Will create link %s to %s\n" $(echob "/usr/local/bin/cloverpro") $(echob "CloverGrowerPro.sh")
         echob "You can THEN 'run' CloverGrowerPro.sh by typing 'cloverpro' ;)"
         echob "Press Enter to continue"
         read
