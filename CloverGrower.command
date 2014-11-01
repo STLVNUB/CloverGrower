@@ -1,6 +1,6 @@
 #!/bin/bash
-myVersion="6.19"
-export gccVers="4.8.3" 
+myVersion="6.24"
+export gccVers="4.9.1" 
 # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -12,10 +12,10 @@ declare -r CMD=$([[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}")
 declare -r CLOVER_GROWER_SCRIPT=$(readlink "$CMD" || echo "$CMD")
 declare -r CLOVER_GROWER_DIR="${CLOVER_GROWER_SCRIPT%/*}"
 theShortcut=`echo ~/Desktop`
-# Source librarie
+# Source library
 source "${CLOVER_GROWER_DIR}"/CloverGrower.lib
 myArch=`uname -m`
-export archBit='x86_64'
+export archBIT='x86_64'
 theRevision=
 if [[ "$1" == ""  && "$myArch" == "x86_64" ]]; then # if NO parameter build 32&64
 	target="X64/IA32"
@@ -23,8 +23,8 @@ else
 	target="X64"
 fi
 if [ "$myArch" == "i386" ] || [ "$1" == "32" ] ; then # for 32bit cpu
-	target="IA32"
-	export archBit='i686'
+	target="ia32"
+	export archBIT='i686'
 fi
 [ "$1" == "-r" ] &&	[ "$2" != "" ] && theRevision="$2"		
 # don't use -e
@@ -93,31 +93,45 @@ fi
 
 #vars
 export workDIR="${CLOVER_GROWER_DIR}"
-export TOOLCHAIN=~/src/opt/local
+export PREFIX=$HOME/opt
+export crossName=cross
 workSpace=$(df -m "${workDIR}" | tail -n1 | awk '{ print $4 }')
 workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
+localGCC=
+#The current release of ACPICA is version <strong>20140424
+#Always use current Version when building
+acpicaVersInfo=$(curl -s https://acpica.org/downloads/ | grep 'The current release of ACPICA is version <strong>')
+acpicaVers="${acpicaVersInfo:56:8}"
+export TARBALL_ACPICA=acpica-unix-$acpicaVers
+
+export DIR_MAIN=${DIR_MAIN:-~/opt}
+
 filesDIR="${workDIR}"/Files
-notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
-[ -f "${workDIR}"/.edk2DIR ] && edk2DIR=$(cat "${workDIR}"/.edk2DIR) && [ ! -d "${edk2DIR}"/.svn ] && rm -rf "${workDIR}"/.edk2DIR 
+if [ -f "${workDIR}"/.edk2DIR ]; then
+	edk2DIR=$(cat "${workDIR}"/.edk2DIR)
+	if [ ! -d "${edk2DIR}"/.svn ]; then
+		rm -rf "${workDIR}"/.edk2DIR 
+	fi
+fi		
 while [ ! -f "${workDIR}"/.edk2DIR ]; do # folder with edk2 svn
 	echo "edk2 folder is NOW universal"
-	echob "To use Default, press return/enter"
-	echo "OR"
 	echob "drag in edk2 folder and press return/enter"
+	echo "OR"
+	echob "To use Default,$HOME/src/edk2"
+	echo "press return/enter"
 	read my_edk2DIR
-	if [ ! -d "$my_edk2DIR" ]; then
-		my_edk2DIR="${workDIR}"/edk2
-		echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
-	else
-		echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
-		break
+	if [ ! -d "$my_edk2DIR" ] || [ "$my_edk2DIR" == "" ]; then
+		my_edk2DIR="$HOME/src/edk2"
 	fi
+	echo "$my_edk2DIR" > "${workDIR}"/.edk2DIR
 done
 edk2DIR=$(cat "${workDIR}"/.edk2DIR)
 edk2DIRName=$(basename "${edk2DIR}")
 edk2DIRParent=$(dirname "${edk2DIR}")
+notifier="${filesDIR}"/terminal-notifier.app/Contents/MacOS/terminal-notifier
+
 echo "Using..."
 echob "       $edk2DIR"
 echo "        as edk2 source folder"
@@ -130,7 +144,6 @@ builtPKGDIR="${workDIR}"/builtPKG
 if [ -d "${builtPKGDIR}" ]; then
 	workSpacePKGDIR=$(du -sh "${builtPKGDIR}" | tail -n1 | awk '{ print $1 }')
 fi
-
 theBuiltVersion=""
 theAuthor=""
 style=release
@@ -260,11 +273,11 @@ export rEFItREV="${refitstats:18:10}"
 function getREVISIONSedk2(){
 checksvn=$(svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2 | grep "Revision")
 sleep 1
-export edk2REV="${checksvn:10:5}"
+export edk2REV="${checksvn:10:10}"
 if [ "$1" == "Initial" ]; then
 	basestats=$(svn info svn://svn.code.sf.net/p/edk2/code/trunk/edk2/BaseTools/ | grep 'Last Changed Rev')
 	sleep 1
-	basetools="${basestats:18:5}" # grab basetools revision, rebuild tools IF revision has changed
+	basetools="${basestats:18:10}" # grab basetools revision, rebuild tools IF revision has changed
 	echo "${edk2REV}" > "${edk2DIR}"/Lvers.txt	# update revision
 	echo "${basetools}" > "${edk2DIR}"/Lbasetools.txt	# update revision
 	
@@ -297,12 +310,12 @@ function getSOURCEFILE() {
 
 # sets up svn sources
 function getSOURCE() {
-    edk2Update="Yes"
+    edk2Update="No" # leave No for Now.
     # Don't update edk2 if no Clover updates
     if [[  "${cloverUpdate}" == "Yes" ]]; then
     	if [[ -d "${edk2DIR}"/.svn ]]; then # get svn revision
     		getREVISIONSedk2 test
-    		Ledk2=`cat "${edk2DIR}"/Lvers.txt`
+    		Ledk2=$(svnversion "${edk2DIR}")
 			if [[ "$edk2REV" == "$Ledk2" ]]; then
 				echob "edk2 svn revision = edk2 local revision ( $edk2REV )" # same return
 				edk2Update="No"
@@ -312,28 +325,52 @@ function getSOURCE() {
 		fi		   	  	
         # Get edk2 source
         if [[ "$edk2Update" == "Yes" ]]; then
-        	#cd "${edk2DIR}"
+        	cd "${edk2DIR}"
 	    	getSOURCEFILE edk2 svn://svn.code.sf.net/p/edk2/code/trunk/edk2  # old repo "http://edk2.svn.sourceforge.net/svnroot/edk2/trunk/edk2"
-	    	
 	    	echo "$edk2REV" > "${edk2DIR}"/Lvers.txt # update the version
 	      fi	
 	fi
 	cd "${edk2DIR}"
 	# Get Clover source
     getSOURCEFILE Clover "svn://svn.code.sf.net/p/cloverefiboot/code/"
-    
-    GETTEXT_PREFIX=${GETTEXT_PREFIX:-"${HOME}"/src/opt/local}
-	# Check that the gettext utilities exists
-	if [[ ! -x "$GETTEXT_PREFIX/bin/msgmerge" ]]; then
-		echob "Need getttext for package builder, Fixing..."
-    	"${CloverDIR}"/buildgettext.sh
-  		checkit "buildtext.sh"
+    # setup gcc
+	#export PREFIX="${PREFIX}"/cross 
+	if [[ ! -f ${PREFIX}/bin/iasl ]]; then
+		export DIR_TOOLS=${DIR_TOOLS:-$DIR_MAIN/tools}
+		export DIR_DOWNLOADS=${DIR_DOWNLOADS:-$DIR_TOOLS/download}
+		export DIR_LOGS=${DIR_LOGS:-$DIR_TOOLS/logs}
+		pushd ${DIR_DOWNLOADS} > /dev/null
+		if [ !  -f ${DIR_DOWNLOADS}/${TARBALL_ACPICA}.tar.gz ]; then
+			echo "Downloading https://acpica.org/sites/acpica/files/${TARBALL_ACPICA}.tar.gz"
+  			echo
+  			curl -f -o download.tmp --remote-name https://acpica.org/sites/acpica/files/${TARBALL_ACPICA}.tar.gz || exit 1
+  			mv download.tmp ${TARBALL_ACPICA}.tar.gz
+  			echo
+  		fi	
+  		echo "Building ACPICA $acpicaVers"
+  		tar -zxf ${TARBALL_ACPICA}.tar.gz
+  		perl -pi -w -e 's/-Woverride-init//g;' ${TARBALL_ACPICA}/generate/unix/Makefile.config
+  		cd ${TARBALL_ACPICA}
+  		make iasl HOST=_APPLE 1> /dev/null 2> $DIR_LOGS/${TARBALL_ACPICA}.make.log.txt
+  		make install 1> $DIR_LOGS/${TARBALL_ACPICA}.install.log.txt 2> /dev/null
+  		rm -Rf ${DIR_DOWNLOADS}/${TARBALL_ACPICA}
+  		echo
+  		popd > /dev/null
 	fi
-
+	
 }
 
 # compiles X64 or IA32 versions of Clover and rEFIt_UEFI
 function cleanRUN(){
+	# Check that the gettext utilities exists
+	if [[ ! -x "${HOME}"/opt/bin/msgmerge ]]; then
+		echob "Need getttext for package builder, Fixing..."
+    	"${filesDIR}"/buildgettext.sh
+  		checkit "buildtext.sh"
+	fi
+	if [[ ! -x ~/opt/bin/nasm ]]; then
+        "${filesDIR}"/buildnasm.sh
+    fi
 	builder=gcc
 	bits=$1
 	theBits=$(echo "$bits" | awk '{print toupper($0)}')
@@ -343,37 +380,41 @@ function cleanRUN(){
 	echo "	Starting Build Process: $(date -j +%T)"
 	echo "	Building Clover$theBits: gcc${mygccVers} $style"
 	clear
-	if [[ "$myArch" == "i386" || "$archBit" == "i686" ]]; then # if 32bit processor
-		archBits='IA32'
+	if [[ "$myArch" == "i386" || "$archBIT" == "i686" ]]; then # if 32bit processor
+		archBITs='ia32'
 	elif [ "$bits" == "X64/IA32" ]; then
-		archBits='x64 mc ia32'
+		archBITs='ia32 x64 mc'
 	else
-		archBits='x64'
+		archBITs='x64'
 	fi
+
 	cd "${CloverDIR}"
-	for az in $archBits ; do
+	svnversion -n | tr -d [:alpha:] >vers.txt
+	cd ..
+	export edk2DIR
+	for az in $archBITs ; do
 		if [ $az == mc ]; then
 			theMacro="-D DISABLE_USB_SUPPORT"
 		else
 			theMacro=""
 		fi	
-		echob "	 running ./ebuild.sh -gcc${mygccVers} -$az -$style $theMacro"
+		echob "	 running Files/ebuild.sh -$az -r $theMacro"
 		sleep 2
-		./ebuild.sh -$az -r "$theMacro"
+		"${filesDIR}"/ebuild.sh -$az -r "$theMacro" -t GCC49 all
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
 		#rm -rf "${buildDIR}"
 	done	
 }
 	
-# sets up 'new' sysmlinks for >=gcc47
+# sets up 'new' sysmlinks for >=GCC48
 function MakeSymLinks() {
-# Function: SymLinks in CG_PREFIX location
+# Function: SymLinks in PREFIX location
 # Need this here to fix links if Files/.CloverTools gets removed
-    if [[ "$target" == "IA32" ]] || [[ "$myArch" == "i386" ]]; then
-    	DoLinks "ia32" "i686-clover-linux-gnu" # only for 32bit cpu
+    if [[ "$target" == "ia32" ]] || [[ "$myArch" == "i386" ]]; then
+    	DoLinks "ia32" "i686-${crossName}-linux-gnu" # only for 32bit cpu
     else	
-        DoLinks "x86_64"  "x86_64-clover-linux-gnu" # for 64bit CPU
-        DoLinks "i686" "i686-clover-linux-gnu" # ditto
+        DoLinks "x86_64"  "x86_64-${crossName}-linux-gnu" # for 64bit CPU
+        DoLinks "i686" "i686-${crossName}-linux-gnu" # ditto
     fi    
 }
 
@@ -381,56 +422,56 @@ function MakeSymLinks() {
 function DoLinks(){
     ARCH="$1"
     TARGETARCH="$2"
-    if [[ ! -d "${TOOLCHAIN}/${ARCH}" ]]; then
-        mkdir -p "${TOOLCHAIN}/${ARCH}"
+    if [[ ! -d "${PREFIX}/${ARCH}" ]]; then
+        mkdir -p "${PREFIX}/${ARCH}"
     fi
-    if [[ $(readlink "${TOOLCHAIN}/${ARCH}"-clover-linux-gnu/bin/gcc) != "${CG_PREFIX}"-clover-linux-gnu/bin/gcc ]]; then # need to do this
+    if [[ $(readlink "${PREFIX}/cross/${ARCH}"-${crossName}-linux-gnu/bin/gcc) != "${PREFIX}"/cross/"${ARCH}"-${crossName}-linux-gnu/bin/gcc ]]; then # need to do this
         echo "  Fixing your GCC${mygccVers} ${ARCH} Symlinks"
         for bin in gcc ar ld objcopy; do
-            ln -sf "${CG_PREFIX}"/bin/$TARGETARCH-$bin  "${TOOLCHAIN}/${ARCH}"/$bin
+            ln -sf "${PREFIX}"/cross/bin/$TARGETARCH-$bin  "${PREFIX}/cross/${ARCH}"/$bin
         done
         echo "  Finished: Fixing"
-        echo "  symlinks are in: ${TOOLCHAIN}/$ARCH"
+        echo "  symlinks are in: ${PREFIX}/$ARCH"
     fi
 }
 
 # checks for gcc install and installs if NOT found
 function checkGCC(){
-    export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
     echob "Checking GCC$gccVers INSTALL status"
-    if [ -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
-    	local lVers=$("${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc -dumpversion)
+    if [ -x "${PREFIX}/cross/${archBIT}"-${crossName}-linux-gnu/bin/gcc ]; then
+    	local lVers=$("${PREFIX}/cross/${archBIT}"-${crossName}-linux-gnu/bin/gcc -dumpversion)
         export mygccVers="${lVers:0:1}${lVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
         echo "  gcc $lVers detected, will use it"
       	echo "  Fixing gcc…"
         MakeSymLinks
         return
     else
-    	echob "$archBit GCC$gccVers NOT installed";echo
+    	echob "$archBIT GCC$gccVers NOT installed";echo
 	fi
-	echob "Press 'i' To install to ~/src/opt/local"
+	echob "Press 'i' To install to ~/opt"
 	echob "OR"
 	echob "Press RETURN/ENTER' to 'EXIT' CloverGrower V$myVersion"
 	read choose
 	[[ "$choose" == "" ]] && echob "Good ${hours}" && exit 1
-	[ ! -d "${CG_PREFIX}"/src ] && mkdir -p "${CG_PREFIX}"/src
 	cd "${workDIR}"/Files
 	echo "  Download/install GCC$gccVers Compiler Tool"
-	echob "  To: ${CG_PREFIX}"
+	echob "  To: ${PREFIX}"
 	sleep 2
-	echo "  Files/buildgcc -all ${CG_PREFIX} $gccVers"
+	echo "  buildgcc -all ${PREFIX} $gccVers"
 	echob "  Starting GCC$gccVers build process..." 
 	STARTM=$(date -u "+%s" 1>/dev/null )
 	date
-	("${filesDIR}"/buildgcc.sh "-all") # "${CG_PREFIX}" "$gccVers")  # build all to CG_PREFIX with gccVers
+	("${filesDIR}"/buildgcc.sh "-all") # "${PREFIX}" "$gccVers")  # build all to PREFIX with gccVers
 	checkit "GCC$gccVers build process..."	
+	
 }
 
 # main function
 function Main(){
 	STARTD=$(date -j "+%d-%h-%Y")
 	theARCHS="$1"
-	[ -f "${edk2DIR}"/Lvers.txt ] && edk2Local=$(cat "${edk2DIR}"/Lvers.txt)
+    export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g GCC46
+	edk2Local=$(svnversion "${edk2DIR}")
 	echo $(date)
 	cloverLocal=${cloverLocal:=''}
 	echob "*******************************************"
@@ -454,7 +495,8 @@ autoBuild(){
 		Main "${targetBits}"
 		built="Yes"
 	fi	
-}	
+}
+
 
 # makes pkg if Built OR builds THEN makes pkg
 function makePKG(){
@@ -477,7 +519,7 @@ function makePKG(){
 	if [[ "${gRefitVers}" == "0" && "${gTheLoader}" != "Apple" ]] && [ "$gFWLoader" != "Ozmosis" ]; then 
 		echob "Booting with ${gTheLoader} UEFI, Clover is NOT currently Installed"
 	else
-			echob "${gCloverLoader}"
+		echob "${gCloverLoader}"
 	fi
 	if [ "$theRevision" == "" ]; then
 		echo
@@ -574,7 +616,7 @@ function makePKG(){
     	getREVISIONSedk2 "test"
     	if [[ -d "${edk2DIR}"/.svn ]]; then
     		echob "svn edk2 revision: ${edk2REV}"
-    		echob "error!!! RETRY!!"
+    		echob "svn edk2 error!!! RETRY!!"
 	    	cd "${edk2DIR}"
 	    	svn cleanup
 	    	
@@ -582,8 +624,8 @@ function makePKG(){
 	    	(svn up --non-interactive --trust-server-cert >/dev/null) &
 	    	spinner $!
 			checkit "edk2  "
-		fi		
-	fi	
+		fi
+	fi
 	if [ "$theRevision" != "" ]; then	
 		versionToBuild="${theRevision}"
 		cloverUpdate="Yes"
@@ -600,19 +642,11 @@ function makePKG(){
         echob "    Copy Files/HFSPlus Clover/HFSPlus"
     	cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
     fi
-   	# Remove old edk2 config files
-   	rm -f "${edk2DIR}"/Conf/{BuildEnv.sh,build_rule.txt,target.txt,tools_def.txt}
-	# Create new default edk2 files in edk2/Conf
-   	cd "${edk2DIR}"
-   	./edksetup.sh >/dev/null
-  	 #get configuration files from Clover
-    cp -R "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${edk2DIR}"/Conf/
-    cp -R "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${edk2DIR}"/Conf/
     echob "    Ready to build Clover $versionToBuild, Using Gcc $gccVers"
     sleep 1
     autoBuild "$1"
     tput bel
-    echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
+    #echo "$CloverREV" > "${CloverDIR}"/Lvers.txt
 	if [ ! -f "${builtPKGDIR}/${versionToBuild}/Clover_v2k_r${versionToBuild}".pkg ]; then # make pkg if not there
 		cd "${CloverDIR}"/CloverPackage
 		if [[ "$target" != "IA32" ]]; then
@@ -620,8 +654,8 @@ function makePKG(){
 			echob "Making Clover_v2k_r${versionToBuild}.pkg..."
 			[[ -d "${CloverDIR}"/CloverPackage/sym ]] && rm -rf "${CloverDIR}"/CloverPackage/sym
 			echob "cd to src/edk2/Clover/CloverPackage and run ./makepkg."
+			export GETTEXT_PREFIX="${HOME}"/opt/
 			./makepkg "No"
-			
 			if [ ! -f "${CloverDIR}/CloverPackage/sym/Clover_v2k_r${versionToBuild}".pkg ]; then 
 				echob "Package ${versionToBuild} NOT BUILT!!!, probably svn error :("
 				echob "REMOVE Clover folder from src/edk2 and re-run CloverGrower V$myVersion :)"
@@ -661,7 +695,7 @@ function makePKG(){
 		fi	
 		echob "rm -rf edk2/Clover/CloverPackage/sym"
 		rm -rf "${CloverDIR}"/CloverPackage/sym
-		echob "rm -rf src/edk2/Build Folder"
+		echob "rm -rf edk2/Build Folder"
 		echob "Auto open Clover_v2k_r${versionToBuild}.pkg."
 		open "${builtPKGDIR}"/"${versionToBuild}/Clover_v2k_r${versionToBuild}.pkg"
 		tput bel
@@ -716,15 +750,22 @@ getInstalledLoader(){
         fi
     fi  
 }
-# setup gcc
-export CG_PREFIX="${TOOLCHAIN}"/cross 
-export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC47 
-if [ ! -x "${CG_PREFIX}/${archBit}"-clover-linux-gnu/bin/gcc ]; then
-	checkGCC
-fi	
+
 getInstalledLoader # check what user is Booting with ;)
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""
 built="No "
+if [ -x "${PREFIX}/cross/bin/${archBIT}"-${crossName}-linux-gnu-gcc ]; then
+	localGCC=$("${PREFIX}/cross/bin/${archBIT}"-${crossName}-linux-gnu-gcc -dumpversion)
+	if [ "$localGCC" != "$gccVers" ]; then
+		echob "GCC version $localGCC Detected, expected $gccVers"
+		echob "Will use $localGCC"
+		gccVers=$localGCC
+	fi		
+fi
+export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC48 
+if [ "$localGCC" != "$gccVers" ]; then
+	checkGCC
+fi
 makePKG "$target" # do complete build
 notify "Good $hours $user, Thanks for using CloverGrower V$myVersion" 

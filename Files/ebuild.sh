@@ -19,16 +19,12 @@ TARGETRULE=
 
 
 # Default values
-export TOOLCHAIN=GCC47
-if [ "$archbit" == "x86_64" ]; then
-	export TARGETARCH=X64
-else
-	export TARGETARCH=IA32
-fi	
+export TOOLCHAIN=${mygccVers}
+export TARGETARCH=X64
 export BUILDTARGET=RELEASE
 export BUILDTHREADS=$(( NUMBER_OF_CPUS + 1 ))
-export WORKSPACE=${WORKSPACE:-}
-export TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-~/src/opt/local}
+export WORKSPACE=${edk2DIR}
+export TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-~/opt}
 
 VBIOSPATCHCLOVEREFI=0
 ONLYSATA0PATCH=0
@@ -51,13 +47,30 @@ case "$XCODE_MAJOR_VERSION" in
     5) PATCH_FILE=;;
 esac
 
+if [[ ! -x "$TOOLCHAIN_DIR"/cross/bin/x86_64-${crossName}-linux-gnu-gcc && \
+      ! -x "$TOOLCHAIN_DIR"/cross/bin/i686-${crossName}-linux-gnu-gcc ]]; then
+    echo "No clover toolchain found !" >&2
+    echo "Build it with the buidgcc.sh script or defined the TOOLCHAIN_DIR variable." >&2
+    exit 1
+fi
 
 # Go to the script directory to build
-cd "${WORKSPACE}"
+cd "$(dirname $0)"
 
 ## FUNCTIONS ##
 
+function exitTrap() {
 
+    if [[ -n "$PATCH_FILE" && -n "$WORKSPACE" ]]; then
+       # echo -n "Unpatching edk2..."
+        #( cd "$WORKSPACE" && cat Clover/Patches_for_EDK2/$PATCH_FILE | eval "$PATCH_CMD -p0 -R" &>/dev/null )
+        if [[ $? -eq 0 ]]; then
+            echo " done"
+        else
+            echo " failed"
+        fi
+    fi
+}
 
 print_option_help () {
   if [[ x$print_option_help_wc = x ]]; then
@@ -106,7 +119,16 @@ print_option_help () {
   fi
 }
 
-
+# Function to manage PATH
+pathmunge () {
+    if [[ ! $PATH =~ (^|:)$1(:|$) ]]; then
+        if [[ "${2:-}" = "after" ]]; then
+            export PATH=$PATH:$1
+        else
+            export PATH=$1:$PATH
+        fi
+    fi
+}
 
 # Add edk2 build option
 addEdk2BuildOption() {
@@ -141,7 +163,8 @@ usage() {
     echo "Toolchain:"
     print_option_help "--clang"     "use XCode Clang toolchain"
     print_option_help "--gcc"       "use unix GCC toolchain"
-    print_option_help "--gcc47"     "use GCC 4.7 toolchain [Default]"
+    print_option_help "--gcc47"     "use GCC 4.7 toolchain"
+    print_option_help "--gcc49"     "use GCC 4.7 toolchain [Default]"
     print_option_help "--xcode"     "use XCode 3.2 toolchain"
     print_option_help "-t TOOLCHAIN, --tagname=TOOLCHAIN" "force to use a specific toolchain"
     echo
@@ -182,7 +205,10 @@ checkCmdlineArguments() {
         case "$option" in
             -clang  | --clang)   TOOLCHAIN=XCLANG  ;;
             -llvm   | --llvm)    TOOLCHAIN=LLVM  ;;
+            -GCC47  | --GCC47)   TOOLCHAIN=GCC47   ;;
             -gcc47  | --gcc47)   TOOLCHAIN=GCC47   ;;
+            -GCC49  | --GCC49)   TOOLCHAIN=GCC49   ;;
+            -gcc49  | --gcc49)   TOOLCHAIN=GCC49   ;;
             -unixgcc | --gcc)    TOOLCHAIN=UNIXGCC ;;
             -xcode  | --xcode )  TOOLCHAIN=XCODE32 ;;
             -ia32 | --ia32)      TARGETARCH=IA32   ;;
@@ -275,6 +301,10 @@ MainBuildScript() {
         if [[ ! -x "${PWD}"/edksetup.sh ]]; then
             cd ..
         fi
+    else
+    	cd "$WORKSPACE"    
+    fi    
+        echo "Building from: $WORKSPACE"
 
         # This version is for the tools in the BaseTools project.
         # this assumes svn pulls have the same root dir
@@ -282,11 +312,18 @@ MainBuildScript() {
         # This version is for the tools source in edk2
         export EDK_TOOLS_PATH="${PWD}"/BaseTools
         source edksetup.sh BaseTools
-    else
-        echo "Building from: $WORKSPACE"
+
+    # Trying to patch edk2
+    if [[ -n "$PATCH_FILE" ]]; then
+        echo -n "Patching edk2..."
+        #( cd "$WORKSPACE" && cat Clover/Patches_for_EDK2/$PATCH_FILE | eval "$PATCH_CMD -p0" &>/dev/null )
+        if [[ $? -eq 0 ]]; then
+            echo " done"
+        else
+            echo " failed"
+        fi
     fi
 
-    
     export CLOVER_PKG_DIR="$WORKSPACE"/Clover/CloverPackage/CloverV2
 
     # Cleaning part of the script if we have told to do it
@@ -304,12 +341,10 @@ MainBuildScript() {
             find  "$CLOVER_PKG_DIR"/EFI/BOOT/ -name '*.efi' -mindepth 1 -not -path "**/.svn*" -delete
             rmdir "$CLOVER_PKG_DIR"/EFI/BOOT &>/dev/null
         fi
-        if [[ -d "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers* ]]; then
-            find  "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers* -mindepth 1 -not -path "**/.svn*" -delete
-            rmdir "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers* &>/dev/null
-        fi
-        find  "$CLOVER_PKG_DIR"/drivers-Off/drivers* -mindepth 1 -not -path "**/.svn*" -delete
+        find  "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers* -mindepth 1 -not -path "**/.svn*" -delete
+        rmdir "$CLOVER_PKG_DIR"/EFI/CLOVER/drivers* &>/dev/null
         find  "$CLOVER_PKG_DIR"/EFI/CLOVER/ -name '*.efi' -maxdepth 1 -not -path "**/.svn*" -delete
+        find  "$CLOVER_PKG_DIR"/drivers-Off/drivers* -mindepth 1 -not -path "**/.svn*" -delete
 
         echo  "Done!"
         exit $?
@@ -321,7 +356,12 @@ MainBuildScript() {
         exit $?
     fi
 
-    
+    # Create edk tools if necessary
+    if  [[ ! -x "$EDK_TOOLS_PATH/Source/C/bin/GenFv" ]]; then
+        echo "Building tools as they are not found"
+        make -C "$WORKSPACE"/BaseTools CC="gcc -Wno-deprecated-declarations"
+    fi
+
     # Build Clover
     #rm $WORKSPACE/Clover/Version.h
     local clover_revision=$(cat Clover/vers.txt)
@@ -339,7 +379,7 @@ MainBuildScript() {
 
     local cmd="build ${EDK2_BUILD_OPTIONS[@]}"
     cmd="$cmd -p $PLATFORMFILE -a $TARGETARCH -b $BUILDTARGET"
-    cmd="$cmd -t $TOOLCHAIN -n $BUILDTHREADS" # $TARGETRULE"
+    cmd="$cmd -t $TOOLCHAIN -n $BUILDTHREADS $TARGETRULE"
 
     echo
     echo "Running edk2 build for Clover$TARGETARCH using the command:"
@@ -462,7 +502,7 @@ MainPostBuildScript() {
         cp -v "$BUILD_DIR_ARCH"/XhciDxe.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64/XhciDxe-64.efi        
         cp -v "$BUILD_DIR_ARCH"/NvmExpressDxe.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64/NvmExpressDxe-64.efi
         cp -v "$BUILD_DIR_ARCH"/OsxAptioFixDrv.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64UEFI/OsxAptioFixDrv-64.efi
-        cp -v "$BUILD_DIR_ARCH"/OsxLowMemFixDrv.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64UEFI/OsxLowMemFixDrv-64.efi
+        #cp -v "$BUILD_DIR_ARCH"/OsxLowMemFixDrv.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64UEFI/OsxLowMemFixDrv-64.efi
         cp -v "$BUILD_DIR_ARCH"/CsmVideoDxe.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64UEFI/CsmVideoDxe-64.efi
         cp -v "$BUILD_DIR_ARCH"/EmuVariableUefi.efi "$CLOVER_PKG_DIR"/drivers-Off/drivers64UEFI/EmuVariableUefi-64.efi
         cp -v "$BUILD_DIR_ARCH"/CLOVER${TARGETARCH}.efi "$CLOVER_PKG_DIR"/EFI/CLOVER/
@@ -480,9 +520,14 @@ MainPostBuildScript() {
     echo "Done!"
 } 
 
+# BUILD START #
+trap 'exitTrap' EXIT
+
 # Default locale
 export LC_ALL=POSIX
 
+# Add toolchain bin directory to the PATH
+pathmunge "$TOOLCHAIN_DIR/bin"
 
 MainBuildScript $@
 MainPostBuildScript
