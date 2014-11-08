@@ -27,7 +27,7 @@ set -u # exit with error if unbound variables
 # here we can change source versions of tools
 #
 export BINUTILS_VERSION=${BINUTILS_VERSION:-binutils-2.24}
-export GCC_VERSION=${GCC_VERSION:-4.9.1}
+export GCC_VERSION=${gccVers}
 
 # Version of libraries are from ./contrib/download_prerequisites in gcc source directory
 export GMP_VERSION=${GMP_VERSION:-gmp-6.0.0a}

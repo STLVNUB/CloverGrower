@@ -1,6 +1,6 @@
 #!/bin/bash
-myVersion="6.24"
-export gccVers="4.9.1" 
+myVersion="6.25"
+export gccVers="4.9.2" 
 # use this
 # Reset locales (important when grepping strings from output commands)
 export LC_ALL=C
@@ -100,13 +100,13 @@ workSpacePKGDIR=
 workSpaceNeeded="522"
 workSpaceMin="104"
 localGCC=
-#The current release of ACPICA is version <strong>20140424
+
 #Always use current Version when building
 acpicaVersInfo=$(curl -s https://acpica.org/downloads/ | grep 'The current release of ACPICA is version <strong>')
 acpicaVers="${acpicaVersInfo:56:8}"
 export TARBALL_ACPICA=acpica-unix-$acpicaVers
 
-export DIR_MAIN=${DIR_MAIN:-~/opt}
+export DIR_MAIN=${DIR_MAIN:-$HOME/src}
 
 filesDIR="${workDIR}"/Files
 if [ -f "${workDIR}"/.edk2DIR ]; then
@@ -340,14 +340,14 @@ function getSOURCE() {
 		export DIR_DOWNLOADS=${DIR_DOWNLOADS:-$DIR_TOOLS/download}
 		export DIR_LOGS=${DIR_LOGS:-$DIR_TOOLS/logs}
 		pushd ${DIR_DOWNLOADS} > /dev/null
-		if [ !  -f ${DIR_DOWNLOADS}/${TARBALL_ACPICA}.tar.gz ]; then
+		if [ ! -f ${DIR_DOWNLOADS}/${TARBALL_ACPICA}.tar.gz ]; then
 			echo "Downloading https://acpica.org/sites/acpica/files/${TARBALL_ACPICA}.tar.gz"
   			echo
   			curl -f -o download.tmp --remote-name https://acpica.org/sites/acpica/files/${TARBALL_ACPICA}.tar.gz || exit 1
   			mv download.tmp ${TARBALL_ACPICA}.tar.gz
   			echo
   		fi	
-  		echo "Building ACPICA $acpicaVers"
+  		echob "Building ACPICA $acpicaVers"
   		tar -zxf ${TARBALL_ACPICA}.tar.gz
   		perl -pi -w -e 's/-Woverride-init//g;' ${TARBALL_ACPICA}/generate/unix/Makefile.config
   		cd ${TARBALL_ACPICA}
@@ -757,10 +757,16 @@ cleanMode=""
 built="No "
 if [ -x "${PREFIX}/cross/bin/${archBIT}"-${crossName}-linux-gnu-gcc ]; then
 	localGCC=$("${PREFIX}/cross/bin/${archBIT}"-${crossName}-linux-gnu-gcc -dumpversion)
+	whatGCC=
 	if [ "$localGCC" != "$gccVers" ]; then
 		echob "GCC version $localGCC Detected, expected $gccVers"
-		echob "Will use $localGCC"
-		gccVers=$localGCC
+		echob "To Use $localGCC, Press 'return/Enter' OR"
+		echob "To Upgrade to $gccVers, Press 'u'"
+		read whatGCC
+		if [ "$whatGCC" == "" ]; then
+			echob "Will use $localGCC"
+			gccVers=$localGCC
+		fi
 	fi		
 fi
 export mygccVers="${gccVers:0:1}${gccVers:2:1}" # needed for BUILD_TOOLS e.g >GCC48 
