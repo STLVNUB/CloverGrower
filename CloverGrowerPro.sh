@@ -263,11 +263,11 @@ function checkXCode() {
 # Check Toolchain
 function checkToolchain() {
     [[ -z "$TOOLCHAIN" ]] && echob "variable TOOLCHAIN not defined !" && exit 1
-    if [[ ! -x "${TOOLCHAIN}/bin/gcc" || ! -x "${TOOLCHAIN}/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
-        installToolchain
-    fi
     if [[ ! -x "${TOOLCHAIN}/bin/msgmerge" ]]; then
         installGettext
+    fi
+    if [[ ! -x "${TOOLCHAIN}/bin/gcc" || ! -x "${TOOLCHAIN}/cross/bin/x86_64-clover-linux-gnu-gcc" ]]; then
+        installToolchain
     fi
     if [[ ! -x "${TOOLCHAIN}/bin/nasm" ]]; then
         installNasm
@@ -433,11 +433,11 @@ function installToolchain() {
 
     if [[ "$USE_LOCAL_BUILDGCC" -eq 1 ]]; then
         echob "Using local version of buildgcc.sh..."
-        cp "$CloverDIR"/buildgcc.sh "$srcDIR"/buildgcc.sh
+        cp "$CloverDIR"/buildgcc-4.9.sh "$srcDIR"/buildgcc.sh
     else
         # Get the latest version of buildgcc.sh from clover
         echob "Checking out last version of buildgcc.sh from clover repository..."
-        svn export --force "$CLOVERSVNURL"/buildgcc.sh "$srcDIR"/buildgcc.sh >/dev/null
+        svn export --force "$CLOVERSVNURL"/buildgcc-4.9.sh "$srcDIR"/buildgcc.sh >/dev/null
     fi
 
     echob "Starting CloverGrower Compile Tools process..."
@@ -598,7 +598,7 @@ function makePKG(){
     fi
 
     if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" || \
-	      $(grep -c 'GCC47_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0        || \
+          $(grep -c 'GCC49_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0        || \
           "${CloverDIR}/Patches_for_EDK2/tools_def.txt" -nt "${EDK2DIR}/Conf/tools_def.txt" ]]; then
         # get configuration files from Clover
         cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${EDK2DIR}/Conf/"
@@ -609,11 +609,11 @@ function makePKG(){
             # Patch edk2/Conf/tools_def.txt for GCC
             sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
              "${EDK2DIR}/Conf/tools_def.txt"
-			# Patch edk2/Conf/tools_def.txt for NASM
-			sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
-			 "${EDK2DIR}/Conf/tools_def.txt"
-			checkit "Patching edk2/Conf/tools_def.txt for NASM"
-		fi
+            # Patch edk2/Conf/tools_def.txt for NASM
+            sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
+             "${EDK2DIR}/Conf/tools_def.txt"
+            checkit "Patching edk2/Conf/tools_def.txt for NASM"
+        fi
 
         rm -Rf "${buildDIR}"/*
         checkit "Clover updated, so rm the build folder"
@@ -831,7 +831,7 @@ esac
 checkEnv
 
 declare -r gccVersToUse=$("${TOOLCHAIN}"/bin/gcc -dumpversion)
-declare -r ebuildToolchainFlag='gcc47'
+declare -r ebuildToolchainFlag='gcc'$(echo "$gccVersToUse" | sed  's/\.//;s/\..*$//')
 
 buildMess="*    Auto-Build Full Clover rEFIt_UEFI    *"
 cleanMode=""

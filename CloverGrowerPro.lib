@@ -97,7 +97,7 @@ function mountRamDisk() {
     dev_ramdisk=$(mount | grep "$RAMDISK_MNT_PT" | awk '{print $1}')
     if [ -z "$dev_ramdisk" ];then
         echo "Creating new RAM disk"
-        dev_ramdisk=`hdiutil attach -nomount ram://409600 | awk '{print $1}'`
+        dev_ramdisk=`hdiutil attach -nomount ram://524288 | awk '{print $1}'`
         echo
         [ -n "$dev_ramdisk" ] && newfs_hfs -v "CloverGrower RamDisk" "$dev_ramdisk" && echo
         [ ! -d "$RAMDISK_MNT_PT" ] && mkdir "$RAMDISK_MNT_PT"
