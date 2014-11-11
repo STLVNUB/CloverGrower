@@ -278,8 +278,16 @@ function checkToolchain() {
 function checkEnv() {
     checkCloverLink
     checkXCode
+
     # Check for svn
     [[ -z $(type -P svn) ]] && { echob "svn command not found. Exiting..." >&2 ; exit 1; }
+
+    # Check that some directories exists
+    if [ ! -d "${srcDIR}" ]; then
+        echob "Make src Folder.."
+        mkdir "${srcDIR}"
+    fi
+
     # Check the toolchain
     checkToolchain
 }
@@ -430,12 +438,6 @@ function installToolchain() {
     printf "toolchain will be install in %s\n" "$(echob "${TOOLCHAIN}")"
     echo  "Press any key to start the process..."
     read
-
-    # Check that some directories exists
-    if [ ! -d "${srcDIR}" ]; then
-        echob "Make src Folder.."
-        mkdir "${srcDIR}"
-    fi
 
     if [[ "$USE_LOCAL_BUILDGCC" -eq 1 ]]; then
         echob "Using local version of buildgcc.sh..."
