@@ -326,12 +326,18 @@ function getSOURCEFILE() {
         echob "    Checked $name SVN, 'No updates were found...'"
         return 0
     fi
+
     printf "    %s, %s\n" "$(echob Checked $name SVN)" "$(sayColor info Updates found...)"
     printf "    %s %s %s %s ...\n" "$(sayColor info Auto Updating $name From)" "$(sayColor yellow $localRev)" "$(sayColor info 'to')" "$(sayColor green $checkoutRev)"
     tput bel
+
     if [[ "$localdir" == */Clover ]]; then
         update_repository --remote-url="$svnremoteurl" --force-revision="$checkoutRev" "$localdir"
     else
+        # EDK2 directory
+        # First revert local modifications done by EDK2 patches
+        svn revert -q -R "$localdir"
+
         update_repository --remote-url="$svnremoteurl" "$localdir"
     fi
 
@@ -500,7 +506,12 @@ autoBuild(){
         echob "$(printf '*    Using Flags: %-24s*\n' $flags)"
         echob "*******************************************"
         tput bel
-        sleep 3
+
+        if [[ "$versionToBuild" -ge 3014 ]]; then
+            # Copy files from Patches_for_EDK2
+            rsync -a --exclude '.cache' "${CloverDIR}"/Patches_for_EDK2/ "${EDK2DIR}"/
+        fi
+
         local startEpoch=$(date -u "+%s")
         # Start build process
         cleanRUN "$theARCHS"
@@ -595,31 +606,37 @@ function makePKG(){
         getSOURCE
         CLOVER_LOCAL_REV=$(getSvnRevision "${CloverDIR}") # Update
         versionToBuild=$CLOVER_LOCAL_REV
-    fi
-
-    if [[ "$cloverUpdate" == "Yes" || ! -f "${EDK2DIR}/Conf/tools_def.txt" || \
-          $(grep -c 'GCC49_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0        || \
-          "${CloverDIR}/Patches_for_EDK2/tools_def.txt" -nt "${EDK2DIR}/Conf/tools_def.txt" ]]; then
-        # get configuration files from Clover
-        cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${EDK2DIR}/Conf/"
-        cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${EDK2DIR}/Conf/"
-
-        # tools_def.txt need to be patch for version < 2863
-        if [[ "$versionToBuild" -lt 2863 ]]; then
-            # Patch edk2/Conf/tools_def.txt for GCC
-            sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
-             "${EDK2DIR}/Conf/tools_def.txt"
-            # Patch edk2/Conf/tools_def.txt for NASM
-            sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
-             "${EDK2DIR}/Conf/tools_def.txt"
-            checkit "Patching edk2/Conf/tools_def.txt for NASM"
-        fi
 
         rm -Rf "${buildDIR}"/*
         checkit "Clover updated, so rm the build folder"
 
         cp -R "${filesDIR}/HFSPlus/" "${CloverDIR}/HFSPlus/"
         checkit "Copy Files/HFSPlus Clover/HFSPlus"
+
+        # Only for clover revisions < 3014
+        if [[ "$versionToBuild" -lt 3014 ]]; then
+            if [[ -n "$FORCE_REVISION" || ! -f "${EDK2DIR}/Conf/tools_def.txt" || \
+             $(grep -c 'GCC49_' "${EDK2DIR}/Conf/tools_def.txt") -eq 0         || \
+             "${CloverDIR}/Patches_for_EDK2/tools_def.txt" -nt "${EDK2DIR}/Conf/tools_def.txt" ]]; then
+                # First revert local modifications done by EDK2 patches
+                svn revert -q -R "$EDK2DIR"
+
+                # get configuration files from Clover
+                cp "${CloverDIR}/Patches_for_EDK2/tools_def.txt"  "${EDK2DIR}/Conf/"
+                cp "${CloverDIR}/Patches_for_EDK2/build_rule.txt" "${EDK2DIR}/Conf/"
+
+                # tools_def.txt need to be patch for version < 2863
+                if [[ "$versionToBuild" -lt 2863 ]]; then
+                    # Patch edk2/Conf/tools_def.txt for GCC
+                    sed -i'.orig' -e 's!^\(DEFINE GCC4[78]_[IA32X64]*_PREFIX *= *\).*!\1'${TOOLCHAIN}'/cross/bin/x86_64-clover-linux-gnu-!' \
+                     "${EDK2DIR}/Conf/tools_def.txt"
+                    # Patch edk2/Conf/tools_def.txt for NASM
+                    sed -i'.orig' -e 's!^\(.*_NASM_PATH *= *\).*!\1'${TOOLCHAIN}'/bin/nasm!' \
+                     "${EDK2DIR}/Conf/tools_def.txt"
+                    checkit "Patching edk2/Conf/tools_def.txt for NASM"
+                fi
+            fi
+        fi
     fi
 
     # Construct EBUILD_COMMAND
