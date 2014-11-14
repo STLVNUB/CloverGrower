@@ -16,7 +16,7 @@ print_option_help_wc=
 have_fmt=
 PLATFORMFILE=
 TARGETRULE=
-
+LTO=
 
 # Default values
 export TOOLCHAIN=${mygccVers}
@@ -214,6 +214,7 @@ checkCmdlineArguments() {
             -ia32 | --ia32)      TARGETARCH=IA32   ;;
             -x64 | --x64)        TARGETARCH=X64    ;;
             -mc | --x64-mcp)     TARGETARCH=X64 ; USE_BIOS_BLOCKIO=1 ;;
+            -lto)				 LTO=1;;
             -clean)    TARGETRULE=clean ;;
             -cleanall) TARGETRULE=cleanall ;;
             -d | -debug | --debug)  BUILDTARGET=DEBUG ;;
@@ -525,7 +526,9 @@ trap 'exitTrap' EXIT
 
 # Default locale
 export LC_ALL=POSIX
-
+if [[ "$LTO" -ne 0 ]]; then
+   export LTO_PREFIX=gcc-
+fi
 # Add toolchain bin directory to the PATH
 pathmunge "$TOOLCHAIN_DIR/bin"
 

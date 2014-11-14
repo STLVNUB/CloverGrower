@@ -1,5 +1,5 @@
 #!/bin/bash
-myVersion="6.25"
+myVersion="6.26"
 export gccVers="4.9.2" 
 # use this
 # Reset locales (important when grepping strings from output commands)
@@ -398,11 +398,10 @@ function cleanRUN(){
 		else
 			theMacro=""
 		fi	
-		echob "	 running Files/ebuild.sh -$az -r $theMacro"
+		echob "	 running Files/ebuild.sh -$az -r $theMacro -GCC49 -lto"
 		sleep 2
-		"${filesDIR}"/ebuild.sh -$az -r "$theMacro" -t GCC49 all
+		"${filesDIR}"/ebuild.sh -$az -r "$theMacro" -GCC49 -lto
 		checkit "Clover${az}_r${versionToBuild} $theStyle"
-		#rm -rf "${buildDIR}"
 	done	
 }
 	
