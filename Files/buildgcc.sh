@@ -80,14 +80,10 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 CheckXCode () {
     local OSXVER="`/usr/bin/sw_vers -productVersion | cut -d '.' -f1,2`"
     local OSXARCH="`/usr/bin/uname -m`"
-	if [ $OSXARCH = $archBit ]; then
-		echo "  Running on Mac OS X ${OSXVER}, with ${OSXARCH} architecture."
-	else
-	echo "  x86_64 OS supported by default"
-	echo "  Check buildgcc.sh source to force 32bit compile"	
-	exit 1	
-	fi	
-	
+    local OSXREV="`/usr/bin/uname -r`"
+    export BUILDARCH="$OSXARCH"
+    export BUILDREV="$OSXREV"
+    echo "  Running on Mac OS X ${OSXVER}, with ${OSXARCH} architecture."
     if [[ ! -x /usr/bin/xcodebuild ]]; then
         echo "ERROR: Install Xcode Tools from Apple before using this script." >&2
         exit 1
@@ -103,7 +99,6 @@ CheckXCode () {
         fi
     fi
 }
-
 ### Main Function START ### 
 
 # Function: Creating directory structure for EDK
@@ -364,7 +359,7 @@ CompileBinutils () {
     rm -rf "$BUILD_BINUTILS_DIR"
     mkdir -p "$BUILD_BINUTILS_DIR" && cd "$BUILD_BINUTILS_DIR"
     echo "- ${BINUTILS_VERSION} configure..."
-    local cmd="${BINUTILS_DIR}/configure  --target=$TARGET  --prefix=$PREFIX/cross  --with-sysroot=$PREFIX --disable-werror --with-gmp=$PREFIX --with-mpfr=$PREFIX --with-mpc=$PREFIX"
+    local cmd="${BINUTILS_DIR}/configure --host=${BUILDARCH}-apple-darwin${BUILDREV} --enable-plugins --build=${BUILDARCH}-apple-darwin${BUILDREV} --target=$TARGET --prefix=$PREFIX/cross --with-gettext=$PREFIX --with-sysroot=$PREFIX --disable-werror --with-gmp=$PREFIX --with-mpfr=$PREFIX --with-mpc=$PREFIX --with-isl=$PREFIX --with-cloog=$PREFIX --disable-isl-version-check"
     local logfile="$DIR_LOGS/binutils.$ARCH.configure.log.txt"
     echo "$cmd" > "$logfile"
     eval "$cmd" >> "$logfile" 2>&1
