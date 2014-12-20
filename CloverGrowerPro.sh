@@ -180,9 +180,22 @@ function checkConfig() {
         echo
     fi
 
+    if [[ -z "$USE_APPLE_HFSPLUS_DRIVER" || -n "$DO_SETUP" ]];then
+        local default_use_apple_hfs_driver='Yes'
+        [[ "${USE_APPLE_HFSPLUS_DRIVER:-1}" -ne 1 ]] && \
+         default_use_apple_hfs_driver='No'
+        local msg=$(printf "Use Apple HFS+ driver (%so, %ses)" \
+                    $(echob "N") $(echob "Y"))
+        local answer=$(prompt "$msg" "$default_use_apple_hfs_driver" 'N' 'Y')
+        USE_APPLE_HFSPLUS_DRIVER=1
+        [[ $(lc "$answer") == n* ]] && USE_APPLE_HFSPLUS_DRIVER=0
+        storeConfig 'USE_APPLE_HFSPLUS_DRIVER' "$USE_APPLE_HFSPLUS_DRIVER"
+        echo
+    fi
+
     if [[ -n "$DO_SETUP" ]];then
         local default_ebuild_optional_args=''
-        EBUILD_OPTIONAL_ARGS=$(echo "$EBUILD_OPTIONAL_ARGS" | sed 's/-D *ENABLE_SECURE_BOOT//g;s/^ *//;s/ *$//')
+        EBUILD_OPTIONAL_ARGS=$(echo "$EBUILD_OPTIONAL_ARGS" | sed -E 's/-D *(ENABLE_SECURE_BOOT|USE_APPLE_HFSPLUS_DRIVER)//g;s/^ *//;s/ *$//;s/  +/ /g')
         EBUILD_OPTIONAL_ARGS=$(prompt "Additionnal parameters to pass to ebuild.sh script" "${EBUILD_OPTIONAL_ARGS:-}")
         storeConfig 'EBUILD_OPTIONAL_ARGS' "$EBUILD_OPTIONAL_ARGS"
         echo
@@ -655,6 +668,9 @@ function makePKG(){
     # We can activate Secure Bool in CloverEFI since revision 2436 of Clover
     [[ "$ENABLE_SECURE_BOOT" -ne 0 && "$versionToBuild" -ge 2436 ]] && \
      EBUILD_COMMAND+=(-D ENABLE_SECURE_BOOT)
+
+    # Use Apple HFS+ driver
+    [[ "$USE_APPLE_HFSPLUS_DRIVER" -eq 1 ]] && EBUILD_COMMAND+=(-D USE_APPLE_HFSPLUS_DRIVER)
 
     [[ -n "${EBUILD_OPTIONAL_ARGS:-}" ]] && EBUILD_COMMAND+=($EBUILD_OPTIONAL_ARGS)
     local check_ebuild_options="${EBUILD_COMMAND[@]} $theARCHS"
