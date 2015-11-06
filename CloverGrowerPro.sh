@@ -859,6 +859,7 @@ case "${theSystem}" in
     12) rootSystem="Mountain Lion" ;;
     13) rootSystem="Mavericks" ;;
     14) rootSystem="Yosemite" ;;
+    15) rootSystem="El Capitan" ;;
      *) rootSystem="Unknown" ;;
 esac
 
