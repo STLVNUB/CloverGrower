@@ -425,7 +425,7 @@ function cleanRUN(){
 
     echo
     echo "Starting $buildMode Process: $(date -j +%T)"
-    echo "Building Clover$archs, ${ebuildToolchainFlag} $style"
+    echo "Building Clover$archs, ${ebuildToolchainFlag}"
 
     # Mount the RamDisk
     mountRamDisk "$EDK2DIR/Build"
@@ -439,7 +439,7 @@ function cleanRUN(){
         echob "running ${EBUILD_COMMAND[@]} --$arch"
         echo
         TOOLCHAIN_DIR="$TOOLCHAIN" ${EBUILD_COMMAND[@]} --$arch
-        checkit "Clover$arch $style"
+        checkit "Clover$arch"
     done
 
     echo
@@ -517,7 +517,7 @@ autoBuild(){
         echob "$(printf '*    Revisions:   %s: %-29s%s\n' $(sayColor info 'edk2') $(sayColor green $edk2LocalRev) $(echob '*'))"
         echob "$(printf '*               %s: %-29s%s\n' $(sayColor info 'Clover') $(sayColor $buildVersioncolor $versionToBuild) $(echob '*'))"
         local IFS=
-        local flags="$ebuildToolchainFlag $theARCHS $style"
+        local flags="$ebuildToolchainFlag $theARCHS"
         echob "$(printf '*    Using Flags: %-24s*\n' $flags)"
         echob "*******************************************"
         tput bel
@@ -833,8 +833,6 @@ theBuiltVersion=""
 buildClover=0
 
 [[ ! -d "${builtPKGDIR}" ]] && mkdir "${builtPKGDIR}"
-
-style=release
 
 if [[ ! -d "$EDK2DIR" && "$workSpace" -lt "$workSpaceNeeded" ]]; then
     echob "error!!! Not enough free space"
